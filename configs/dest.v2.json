@@ -1,0 +1,46 @@
+{
+    "name": "dest_v2",
+    "syncPath": "vsync/",
+    "dataPaths": [
+        "multipaas/"
+    ],
+    "log": {
+        "level": "debug",
+        "type": "console"
+    },
+    "numBuckets": 19,
+    "origin": {
+        "dc": "dc1",
+        "vault": {
+            "address": "http://127.0.0.1:6200",
+            "token": "s.M1R5N97REjYYYcMS1M45xAqY"
+        },
+        "consul": {
+            "address": "http://127.0.0.1:6500"
+        },
+        "numWorkers": 5,
+        "tick": "10s",
+        "timeout": "10s",
+        "renewToken": false
+    },
+    "destination": {
+        "dc": "dc2",
+        "vault": {
+            "address": "http://127.0.0.1:7200",
+            "token": "s.Vux0ColMEJZpvvvfILZkoDpr"
+        },
+        "consul": {
+            "address": "http://127.0.0.1:7500"
+        },
+        "numWorkers": 10,
+        "tick": "10s",
+        "timeout": "10s",
+        "transforms": [
+            {
+                "name": "v1->v2",
+                "from": "(?P<mount>secret)/(?P<meta>((meta)?data))?/(?P<platform>multipaas)/(?P<env>(dev|test|stage|prod))?/?(?P<app>\\w+)?/?",
+                "to": "multipaas/meta/env/app/secrets"
+            }
+        ]
+    }
+}

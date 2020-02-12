@@ -1,0 +1,20 @@
+{
+    "storage":
+    {
+      "consul":
+      {
+        "address": "originC:8500",
+        "path": "multipaas-vault/"
+      }
+    },
+    "listener":
+    {
+      "tcp":
+      {
+        "address": "0.0.0.0:8200",
+        "tls_disable": 1
+      }
+    },
+    "ui": true,
+    "log_level": "DEBUG"
+  }

@@ -1,0 +1,16 @@
+# ide
+.vscode/
+.idea/
+.DS_Store
+
+# binaries
+vsync
+debug
+dist/
+
+# quality
+.tmp_*
+.quality/
+*.pprof
+*.out
+work/
