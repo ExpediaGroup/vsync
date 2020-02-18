@@ -1,0 +1,26 @@
+before:
+    hooks:
+        - go mod download
+        - go generate ./...
+
+builds:
+    -
+        main: ./main.go
+        ldflags:
+            - "-X github.com/ExpediaGroup/vsync/cmd.buildCommit={{ .Env.BUILD_COMMIT }} -X github.com/ExpediaGroup/vsync/cmd.buildTime={{ .Env.BUILD_TIME }} -X github.com/ExpediaGroup/vsync/cmd.buildVersion={{ .Env.BUILD_VERSION }}"
+        env:
+            - CGO_ENABLED=0
+        goos:
+            - linux
+        goarch:
+            - amd64
+
+archives:
+    -
+        name_template: "{{ .ProjectName }}_{{ .Env.BUILD_VERSION }}_{{ .Os }}"
+
+snapshot:
+    name_template: "{{ .Env.BUILD_VERSION }}"
+
+checksum:
+    name_template: "{{ .ProjectName }}_{{ .Env.BUILD_VERSION }}_checksums.txt"
