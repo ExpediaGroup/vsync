@@ -85,7 +85,7 @@ Vsync uses consul kv to store meta data about sync.
 The datastructure is designed to handle any number of entries [keys, policies] for syncing between vaults.
 On the positive side it overcomes the size limit of consul kv storage as well as consul event size.
 
-Sync Info is a collection of numnber of buckets (default: 20 buckets) along with 1 index.
+Sync Info is a collection of number of buckets (default: 20 buckets) along with 1 index.
 
 This structure needs to be safe for concurrent usage because more workers will update their secrets at the same time.
 
