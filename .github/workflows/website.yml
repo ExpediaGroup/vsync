@@ -1,0 +1,28 @@
+name: website
+
+on:
+    push:
+        branches: 'master'
+        paths:
+            - 'docs/**'
+            - 'website/**'
+
+jobs:
+    publish_website:
+        runs-on: ubuntu-latest
+        steps:
+        -
+            name: Checkout
+            uses: actions/checkout@v2
+        -
+            name: Use Node.js 12
+            uses: actions/setup-node@v1
+            with:
+                node-version: 12
+        -
+            name: Build
+            run: |
+                yarn build
+                GIT_USER=eg-oss-ci yarn deploy
+            env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

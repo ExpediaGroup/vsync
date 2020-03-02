@@ -1,4 +1,8 @@
-# FAQ
+---
+id: faq
+title: Faq
+sidebar_label: Faq
+---
 
 ## Why
 
@@ -36,11 +40,12 @@ It primarily uses streaming write ahead log to get changes propagated to other v
 
 ## Deployment
 
-### Why nomad?
+### Why we choose nomad?
 
 * Good integration between vault and nomad
 * Jobs will restart itself if something happens
 * Canary deployments
+* Isolated Fork/Exec Driver
 * Hashicorp quality
 
 ## Failures

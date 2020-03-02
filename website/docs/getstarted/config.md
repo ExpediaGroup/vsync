@@ -1,4 +1,8 @@
-# Deployment options for vsync
+---
+id: config
+title: Config
+sidebar_label: Config
+---
 
 ## Hierarchy of parameters
 
@@ -25,6 +29,8 @@
 
 `numBuckets` : sync info in consul kv will have N number of buckets and 1 index, each bucket is a map of path:insight. You will need to increase it as you hit per consul kv size limit. It must be same for origin and destinations. (default: 1)
 
+### Origin
+
 `origin` : top level key for all origin related config parameters
 
 `origin.dc` : origin consul datacenter. "--origin.dc" cli param
@@ -44,6 +50,8 @@
 `origin.timout` : time limit trigger of a bomb, killing an existing sync cycle. String format like 10m, 5s (default: "5m")
 
 `origin.renewToken` : renews origin vault periodic token and making it infinite token (default: true). See securely transfer origin vault token for more info.
+
+### Destination
 
 `destination` : top level key for all destination related config parameters
 
@@ -70,6 +78,8 @@ Setting `VSYNC_*` envrionment variables will also have effects. eg: "VSYNC_LOGLE
 ## Config file
 
 Supported format: json, hcl, yaml through [viper](https://github.com/spf13/viper)
+
+## Examples
 
 ### Origin
 ```
@@ -241,41 +251,3 @@ We are transforming from one mount to another
     }
 }
 ```
-
-## Securely transfer origin vault token
-
-Its not easy to securely transfer the origin vault token to destinations.
-
-We used destination vault for this, there could be multiple ways.
-
-*Step 1*
-
-Create periodic token from origin vault
-```
-vault token create --policy vsync_origin --period 24h --orphan -display-name vsync-origin-eu-west-1-test
-```
-
-*Step 2*
-
-Goto destination vault and under any path, say 
-`secret/vsync/origin`
-```
-vaultToken:<created periodic vault token> 
-```
-
-*Step 3*
-
-When you start you destination vsync app make sure you pull the origin vault token from destination vault.
-
-## Artifact
-
-There are options,
-
-* docker image
-* binary
-
-## Deployment
-
-We used `nomad` schedular with binary driver to deploy the job in origin and destination regions, it make easier to get destination vault tokens because of nomad vault integration.
-
-Feel free to deploy in a way that needs minimal manual maintanence. Go Nuts!
