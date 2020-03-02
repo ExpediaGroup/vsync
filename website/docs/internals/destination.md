@@ -4,7 +4,7 @@ title: Destination
 sidebar_label: Destination
 ---
 
-This is the end of unidirectional connection for syncing secrets. It should point to secondary vault clusters in different regions from which regional apps can pull out secrets.
+This is the end of the unidirectional connection for syncing secrets. It should point to secondary vault clusters in different regions from which regional apps can pull out secrets.
 
 ---
 
