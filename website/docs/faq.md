@@ -40,6 +40,7 @@ It primarily uses streaming write ahead log to get changes propagated to other v
 
 ## Deployment
 
+
 ### Why we choose nomad?
 
 * Good integration between vault and nomad
