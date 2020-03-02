@@ -21,7 +21,7 @@ It creates
 
 You can find example working configs in `configs` folder
 
-More docs about vsync [config](../deploy/config.md)
+More docs about vsync [deployment options](../deploy/options.md)
 
 To create more secrets for stress test purposes, change the `seq N` in populate data section of script. populate data will use parallel to use all your cpus to create secrets faster. I have tested `N` with 10000.
 
