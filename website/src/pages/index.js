@@ -9,7 +9,7 @@ import styles from './styles.module.css';
 const features = [
   {
     title: <>Faster</>,
-    imageUrl: 'img/undraw_docusaurus_mountain.svg',
+    // imageUrl: 'img/undraw_docusaurus_mountain.svg',
     description: (
       <>
         Parallel workers to finish the job faster
@@ -18,7 +18,7 @@ const features = [
   },
   {
     title: <>Resilient</>,
-    imageUrl: 'img/undraw_docusaurus_mountain.svg',
+    // imageUrl: 'img/undraw_docusaurus_mountain.svg',
     description: (
       <>
         Does not fail on copying single bad secret<br></br>
@@ -28,7 +28,7 @@ const features = [
   },
   {
     title: <>Cleaner</>,
-    imageUrl: 'img/undraw_docusaurus_tree.svg',
+    // imageUrl: 'img/undraw_docusaurus_tree.svg',
     description: (
       <>
         Vault audit logs are cleaner as vsync uses only kv metadata for comparison<br></br>
@@ -38,7 +38,7 @@ const features = [
   },
   {
     title: <>Transformers</>,
-    imageUrl: 'img/undraw_docusaurus_react.svg',
+    // imageUrl: 'img/undraw_docusaurus_react.svg',
     description: (
       <>
         Migrate paths of secrets from one format to another format and keep in sync without impacting developers and apps
@@ -47,15 +47,15 @@ const features = [
   },
 ];
 
-function Feature({imageUrl, title, description}) {
-  const imgUrl = useBaseUrl(imageUrl);
+function Feature({ title, description}) {
+  // const imgUrl = useBaseUrl(imageUrl);
   return (
     <div className={classnames('col col--4', styles.feature)}>
-      {imgUrl && (
+      {/* {imgUrl && (
         <div className="text--center">
           <img className={styles.featureImage} src={imgUrl} alt={title} />
         </div>
-      )}
+      )} */}
       <h3>{title}</h3>
       <p>{description}</p>
     </div>

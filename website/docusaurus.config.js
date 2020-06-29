@@ -3,7 +3,7 @@ module.exports = {
   tagline: 'Sync secrets between HashiCorp vaults',
   url: 'https://expediagroup.github.io',
   baseUrl: '/vsync/',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/icon.png',
   organizationName: 'ExpediaGroup', // Usually your GitHub org/user name.
   projectName: 'vsync', // Usually your repo name.
   themeConfig: {
@@ -11,7 +11,7 @@ module.exports = {
       title: 'Vsync',
       logo: {
         alt: 'vsync logo',
-        src: 'img/logo.svg',
+        src: 'img/icon.png',
       },
       links: [
         {to: 'docs/getstarted/why', label: 'Docs', position: 'left'},
