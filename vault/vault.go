@@ -97,7 +97,7 @@ func (v *Client) DeepListPaths(path string) ([]string, []string, error) {
 }
 
 // GetAllSecretPaths recursively lists all absolute paths given a root vault kv v2 path
-// Note: do not convert this into go routines as we dont know how to kill the goroutine
+// If we have large number of kv, vault tries to rate limit so parallizing this with multiple go routine did not work
 func (v *Client) GetAllPaths(metaPaths []string) ([]string, []error) {
 	var paths []string
 	var errs []error

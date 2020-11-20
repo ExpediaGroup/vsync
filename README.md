@@ -13,4 +13,6 @@ Cleanly closes the cycles
 * Loopback to have origin and destination in the same vault
 * Meta sync information is stored in consul
 
+> NOTE: Not prod ready yet, esp because of tests and telemetry
+
 Website: https://expediagroup.github.io/vsync

@@ -45,9 +45,9 @@ func GetMetaPath(s string) string {
 	p := matches["mount"] + "/" + matches["meta"] + matches["rest"]
 	p = regexp.MustCompile("/+").ReplaceAllString(p, "/")
 
-	if p[len(p)-1:] == "/" {
-		p = p[:len(p)-1]
-	}
+	// if p[len(p)-1:] == "/" {
+	// 	p = p[:len(p)-1]
+	// }
 	return p
 }
 
