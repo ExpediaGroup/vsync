@@ -1,50 +1,44 @@
 name: snapshot
 
 on:
-    pull_request:
-    push:
-        branches: '**'
+  pull_request:
+  push:
+    branches: "**"
 
 jobs:
-    build_test_snapshot:
-        runs-on: ubuntu-latest
-        steps:
-        -
-            name: Checkout
-            uses: actions/checkout@v2
-            with:
-                fetch-depth: 0
-        -
-            name: Set up Go
-            uses: actions/setup-go@v1
-            with:
-                go-version: 1.13.x
-        -
-            name: Build vars
-            id: build_vars
-            run: |
-                echo ::set-output name=build_commit::${{ github.sha }}
-                echo ::set-output name=build_time::$(date -u +"%Y-%m-%dT%H:%M:%S")
-                echo ::set-output name=build_version::$(git describe --tags 2>/dev/null || echo "v0.0.0")
-        -
-            name: Build
-            run: |
-                go mod download
-                go generate ./...
-                go build -o vsync -ldflags="-X github.com/ExpediaGroup/vsync/cmd.buildCommit=${{ steps.build_vars.outputs.build_commit }} -X github.com/ExpediaGroup/vsync/cmd.buildTime=${{ steps.build_vars.outputs.build_time }} -X github.com/ExpediaGroup/vsync/cmd.buildVersion=${{ steps.build_vars.outputs.build_version }}"
-        -
-            name: Unit tests
-            run: |
-                ./vsync --version
-                go test ./...
-        -
-            name: Snapshot using goreleaser
-            uses: goreleaser/goreleaser-action@v1
-            with:
-                version: latest
-                args: release --snapshot --rm-dist
-            env:
-                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                BUILD_COMMIT: ${{ steps.build_vars.outputs.build_commit }}
-                BUILD_TIME: ${{ steps.build_vars.outputs.build_time }}
-                BUILD_VERSION: ${{ steps.build_vars.outputs.build_version }}
+  build_test_snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13.x
+      - name: Build vars
+        id: build_vars
+        run: |
+          echo ::set-output name=build_commit::${{ github.sha }}
+          echo ::set-output name=build_time::$(date -u +"%Y-%m-%dT%H:%M:%S")
+          echo ::set-output name=build_version::$(git describe --tags 2>/dev/null || echo "v0.0.0")
+      - name: Build
+        run: |
+          go mod download
+          go generate ./...
+          go build -o vsync -ldflags="-X github.com/ExpediaGroup/vsync/cmd.buildCommit=${{ steps.build_vars.outputs.build_commit }} -X github.com/ExpediaGroup/vsync/cmd.buildTime=${{ steps.build_vars.outputs.build_time }} -X github.com/ExpediaGroup/vsync/cmd.buildVersion=${{ steps.build_vars.outputs.build_version }}"
+      - name: Unit tests
+        run: |
+          ./vsync --version
+          go test ./...
+      - name: Snapshot using goreleaser
+        uses: goreleaser/goreleaser-action@v1
+        with:
+          version: latest
+          args: release --snapshot --rm-dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_COMMIT: ${{ steps.build_vars.outputs.build_commit }}
+          BUILD_TIME: ${{ steps.build_vars.outputs.build_time }}
+          BUILD_VERSION: ${{ steps.build_vars.outputs.build_version }}

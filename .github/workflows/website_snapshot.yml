@@ -1,8 +1,9 @@
-name: website
+name: website_snapshot
 
 on:
+  pull_request:
   push:
-    branches: "master"
+    branches: "**"
     paths:
       - ".github/workflows/website.yml"
       - "docs/**"
@@ -23,8 +24,3 @@ jobs:
           cd website
           npm install
           npm run build
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./website/build
