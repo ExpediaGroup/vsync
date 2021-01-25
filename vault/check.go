@@ -16,6 +16,7 @@ package vault
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ExpediaGroup/vsync/apperr"
 	"github.com/gofrs/uuid"
@@ -31,33 +32,30 @@ const (
 	StdCheck = ReadCheck | WriteCheck | ListCheck | DeleteCheck
 )
 
-func (v *Client) DataPathChecks(dataPath string, checks int, name string) error {
-	const op = apperr.Op("vault.DataPathChecks")
-
+func (v *Client) MountChecks(mount string, checks int, name string) error {
+	const op = apperr.Op("vault.MountChecks")
 	if checks == 0 {
 		checks = StdCheck
 	}
 
-	p := GetMetaPath(dataPath)
-
-	err := v.IsSecretKvV2(p)
+	err := v.IsSecretKvV2(mount)
 	if err != nil {
-		log.Debug().Err(err).Str("dataPath", p).Msg("data path mount is not kv or not kv v2, check token permission")
-		return apperr.New(fmt.Sprintf("data path %q is not kv / kv_v2", dataPath), err, op, apperr.Fatal, ErrInvalidToken)
+		log.Debug().Err(err).Str("mount", mount).Msg("mount is not kv or not kv v2, check token permission")
+		return apperr.New(fmt.Sprintf("data mount %q is not kv / kv_v2", mount), err, op, apperr.Fatal, ErrInvalidToken)
 	}
+
+	p := fmt.Sprintf("%sdata", mount)
 
 	err = v.CheckTokenPermissions(p, checks, name)
 	if err != nil {
-		return apperr.New(fmt.Sprintf("token missing permissions on data path %q", dataPath), err, op, apperr.Fatal, ErrInvalidToken)
+		return apperr.New(fmt.Sprintf("token missing permissions on data path %q", p), err, op, apperr.Fatal, ErrInvalidToken)
 	}
 
 	return nil
 }
 
-func (v *Client) GetMount(p string) (*api.MountOutput, error) {
-	const op = apperr.Op("vault.MountExists")
-
-	m := GetMount(p)
+func (v *Client) GetMount(m string) (*api.MountOutput, error) {
+	const op = apperr.Op("vault.GetMount")
 
 	mounts, err := v.Sys().ListMounts()
 	if err != nil {
@@ -103,8 +101,10 @@ func (v *Client) CheckTokenPermissions(p string, checks int, name string) error 
 			"key": unique.String(),
 		},
 	}
-	path := GetDataPath(p)
-	parentPath := ParentPath(p)
+
+	path := p
+	metaPath := strings.Replace(p, "/data/", "/metadata/", 1)
+	parentPath := metaPath[:strings.LastIndex(metaPath, "/")]
 
 	// create
 	if checks&(WriteCheck) != 0 {

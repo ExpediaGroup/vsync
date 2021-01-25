@@ -62,23 +62,29 @@ This is the destination where the sync must reflect the origin kv store
 
 There could be 0 or more destinations
 
-## Data paths
+## Mounts
+
+> Mounts replaced Data Paths
 
 A list of vault mount paths which needs to be synced. It could be different between origin and destination. Vault token provided for vsync needs to have approriate permission on these paths.
 
 ```
 Origin:
-"dataPaths": [
+"mounts": [
     "secret/"
 ],
 
 Destination:
-"dataPaths": [
+"mounts": [
     "new_mount/"
     "secret/"
 ],
 ```
 In future: we could have exclude paths regex and can be used to NOT sync
+
+## Data paths
+
+> Deprecated after v0.0.1, renamed as mounts
 
 ## Sync Info
 

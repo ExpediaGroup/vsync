@@ -21,6 +21,7 @@ import (
 	"hash"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -76,11 +77,12 @@ var destinationCmd = &cobra.Command{
 		// initial configs
 		name := viper.GetString("name")
 		syncPath := viper.GetString("syncPath")
-		dataPaths := viper.GetStringSlice("dataPaths")
 		numBuckets := viper.GetInt("numBuckets")
 		tick := viper.GetDuration("destination.tick")
 		timeout := viper.GetDuration("destination.timeout")
 		numWorkers := viper.GetInt("destination.numWorkers")
+		originMounts := viper.GetStringSlice("origin.mounts")
+		destinationMounts := viper.GetStringSlice("destination.mounts")
 		hasher := sha256.New()
 
 		// telemetry client
@@ -164,30 +166,40 @@ var destinationCmd = &cobra.Command{
 			log.Info().Str("path", destinationSyncPath).Msg("path is initialized")
 		}
 
-		// perform inital checks on sync path, check kv v2 and token permissions
-		if len(dataPaths) == 0 {
-			return apperr.New(fmt.Sprintf("no data paths found for syncing, specify dataPaths in config"), err, op, apperr.Fatal, ErrInitialize)
-		}
-
+		// perform intial checks on mounts, check kv v2 and token permissions
 		// check origin token permissions
-		for _, dataPath := range dataPaths {
-			err = originVault.DataPathChecks(dataPath, vault.StdCheck, name)
+		if len(originMounts) == 0 {
+			return apperr.New(fmt.Sprintf("no %q mounts found for syncing, specify mounts in config", "origin"), err, op, apperr.Fatal, ErrInitialize)
+		}
+		for _, mount := range originMounts {
+			if !strings.HasSuffix(mount, "/") {
+				log.Debug().Err(err).Msg("failures on mount checks on origin, missing a / at last for each mount")
+				return apperr.New(fmt.Sprintf("failures on mount checks on origin, missing a / at last for each mount"), err, op, apperr.Fatal, ErrInitialize)
+			}
+			err = originVault.MountChecks(mount, vault.StdCheck, name)
 			if err != nil {
 				log.Debug().Err(err).Msg("failures on data paths checks on origin")
 				return apperr.New(fmt.Sprintf("failures on data paths checks on origin"), err, op, apperr.Fatal, ErrInitialize)
 			}
 		}
-		log.Info().Strs("paths", dataPaths).Msg("data paths passed initial checks on origin")
+		log.Info().Strs("mounts", originMounts).Msg("mounts passed initial checks on origin")
 
 		// check destination token permissions
-		for _, dataPath := range dataPaths {
-			err = destinationVault.DataPathChecks(dataPath, vault.StdCheck, name)
+		if len(destinationMounts) == 0 {
+			return apperr.New(fmt.Sprintf("no %q mounts found for syncing, specify mounts in config", "destination"), err, op, apperr.Fatal, ErrInitialize)
+		}
+		for _, mount := range destinationMounts {
+			if !strings.HasSuffix(mount, "/") {
+				log.Debug().Err(err).Msg("failures on mount checks on destination, missing a / at last for each mount")
+				return apperr.New(fmt.Sprintf("failures on mount checks on destination, missing a / at last for each mount"), err, op, apperr.Fatal, ErrInitialize)
+			}
+			err = destinationVault.MountChecks(mount, vault.StdCheck, name)
 			if err != nil {
-				log.Debug().Err(err).Msg("failures on data paths checks on destination")
-				return apperr.New(fmt.Sprintf("failures on data paths checks on destination"), err, op, apperr.Fatal, ErrInitialize)
+				log.Debug().Err(err).Msg("failures on mount checks on destination")
+				return apperr.New(fmt.Sprintf("failures on mount checks on destination"), err, op, apperr.Fatal, ErrInitialize)
 			}
 		}
-		log.Info().Strs("paths", dataPaths).Msg("data paths passed initial checks on destination")
+		log.Info().Strs("mounts", destinationMounts).Msg("mounts passed initial checks on destination")
 
 		log.Info().Msg("********** starting destination sync **********\n")
 
@@ -195,9 +207,9 @@ var destinationCmd = &cobra.Command{
 		go prepareWatch(ctx, originConsul, originSyncPath, triggerCh, errCh)
 		go prepareTicker(ctx, originConsul, originSyncPath, tick, triggerCh, errCh)
 		go destinationSync(ctx, name,
-			originConsul, originVault,
-			destinationConsul, destinationVault,
-			syncPath, dataPaths, pack,
+			originConsul, originVault, originMounts,
+			destinationConsul, destinationVault, destinationMounts,
+			syncPath, pack,
 			hasher, numBuckets, timeout, numWorkers,
 			triggerCh, errCh)
 
@@ -213,6 +225,7 @@ var destinationCmd = &cobra.Command{
 				if apperr.ShouldPanic(err) {
 					telemetryClient.Count("vsync.destination.error", 1, "type:panic")
 					cancel()
+					time.Sleep(1 * time.Second)
 					close(errCh)
 					close(sigCh)
 					log.Panic().Interface("ops", apperr.Ops(err)).Msg(err.Error())
@@ -220,6 +233,7 @@ var destinationCmd = &cobra.Command{
 				} else if apperr.ShouldStop(err) {
 					telemetryClient.Count("vsync.destination.error", 1, "type:fatal")
 					cancel()
+					time.Sleep(1 * time.Second)
 					close(errCh)
 					close(sigCh)
 					log.Error().Interface("ops", apperr.Ops(err)).Msg(err.Error())
@@ -311,9 +325,9 @@ func prepareTicker(ctx context.Context, originConsul *consul.Client, originSyncP
 
 // destinationSync compares sync entries then update actual and sync entries
 func destinationSync(ctx context.Context, name string,
-	originConsul *consul.Client, originVault *vault.Client,
-	destinationConsul *consul.Client, destinationVault *vault.Client,
-	syncPath string, dataPaths []string, pack transformer.Pack,
+	originConsul *consul.Client, originVault *vault.Client, originMounts []string,
+	destinationConsul *consul.Client, destinationVault *vault.Client, destinationMounts []string,
+	syncPath string, pack transformer.Pack,
 	hasher hash.Hash, numBuckets int, timeout time.Duration, numWorkers int,
 	triggerCh chan bool, errCh chan error) {
 
@@ -342,8 +356,8 @@ func destinationSync(ctx context.Context, name string,
 			syncCtx, syncCancel := context.WithTimeout(ctx, timeout)
 
 			// check origin token permission before starting each cycle
-			for _, dataPath := range dataPaths {
-				err := originVault.DataPathChecks(dataPath, vault.StdCheck, name)
+			for _, oMount := range originMounts {
+				err := originVault.MountChecks(oMount, vault.StdCheck, name)
 				if err != nil {
 					log.Debug().Err(err).Msg("failures on data paths checks on origin")
 					errCh <- apperr.New(fmt.Sprintf("failures on data paths checks on origin"), err, op, apperr.Fatal, ErrInitialize)
@@ -357,8 +371,8 @@ func destinationSync(ctx context.Context, name string,
 			}
 
 			// check destination token permission before starting each cycle
-			for _, dataPath := range dataPaths {
-				err := destinationVault.DataPathChecks(dataPath, vault.StdCheck, name)
+			for _, dMount := range destinationMounts {
+				err := destinationVault.MountChecks(dMount, vault.StdCheck, name)
 				if err != nil {
 					log.Debug().Err(err).Msg("failures on data paths checks on destination")
 					errCh <- apperr.New(fmt.Sprintf("failures on data paths checks on destination"), err, op, apperr.Fatal, ErrInitialize)

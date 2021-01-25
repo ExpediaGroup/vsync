@@ -1,9 +1,6 @@
 {
     "name": "dest_loop_v2",
     "syncPath": "vsync/",
-    "dataPaths": [
-        "multipaas/"
-    ],
     "log": {
         "level": "debug",
         "type": "console"
@@ -18,6 +15,9 @@
         "consul": {
             "address": "http://127.0.0.1:6500"
         },
+        "mounts": [
+            "secret/"
+        ],
         "numWorkers": 5,
         "tick": "10s",
         "timeout": "10s",
@@ -32,6 +32,9 @@
         "consul": {
             "address": "http://127.0.0.1:6500"
         },
+        "mounts": [
+            "secret/"
+        ],
         "numWorkers": 10,
         "tick": "10s",
         "timeout": "10s",

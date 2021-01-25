@@ -21,6 +21,7 @@ import (
 	"hash"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -73,11 +74,11 @@ var originCmd = &cobra.Command{
 		// initial configs
 		name := viper.GetString("name")
 		syncPath := viper.GetString("syncPath")
-		dataPaths := viper.GetStringSlice("dataPaths")
 		numBuckets := viper.GetInt("numBuckets")
 		tick := viper.GetDuration("origin.tick")
 		timeout := viper.GetDuration("origin.timeout")
 		numWorkers := viper.GetInt("origin.numWorkers")
+		originMounts := viper.GetStringSlice("origin.mounts")
 		hasher := sha256.New()
 
 		// telemetry client
@@ -110,32 +111,36 @@ var originCmd = &cobra.Command{
 		}
 		log.Info().Str("path", originSyncPath).Msg("sync path passed initial checks")
 
-		// perform inital checks on sync path, check kv v2 and token permissions
-		if len(dataPaths) == 0 {
-			return apperr.New(fmt.Sprintf("no data paths found for syncing, specify dataPaths in config"), err, op, apperr.Fatal, ErrInitialize)
+		// perform intial checks on mounts, check kv v2 and token permissions
+		// check origin token permissions
+		if len(originMounts) == 0 {
+			return apperr.New(fmt.Sprintf("no %q mounts found for syncing, specify mounts in config", "origin"), err, op, apperr.Fatal, ErrInitialize)
 		}
-
-		for _, dataPath := range dataPaths {
-			err = originVault.DataPathChecks(dataPath, vault.StdCheck, name)
+		for _, mount := range originMounts {
+			if !strings.HasSuffix(mount, "/") {
+				log.Debug().Err(err).Msg("failures on mount checks on origin, missing a / at last for each mount")
+				return apperr.New(fmt.Sprintf("failures on mount checks on origin, missing a / at last for each mount"), err, op, apperr.Fatal, ErrInitialize)
+			}
+			err = originVault.MountChecks(mount, vault.StdCheck, name)
 			if err != nil {
-				log.Debug().Err(err).Msg("failures on data paths checks")
-				return apperr.New(fmt.Sprintf("failures on data paths checks on destination"), err, op, apperr.Fatal, ErrInitialize)
+				log.Debug().Err(err).Msg("failures on mount checks on origin")
+				return apperr.New(fmt.Sprintf("failures on mount checks on origin"), err, op, apperr.Fatal, ErrInitialize)
 			}
 		}
-		log.Info().Strs("paths", dataPaths).Msg("data paths passed initial checks")
+		log.Info().Strs("mounts", originMounts).Msg("mounts passed initial checks on origin")
 
 		log.Info().Msg("********** starting origin sync **********\n")
 
 		// setup channels
-		errCh := make(chan error, len(dataPaths)) // equal to number of go routines so that we can close it and dont worry about nil channel panic
-		sigCh := make(chan os.Signal, 3)          // 3 -> number of signals it may need to handle at single point in time
+		errCh := make(chan error, numWorkers) // equal to number of go routines so that we can close it and dont worry about nil channel panic
+		sigCh := make(chan os.Signal, 3)      // 3 -> number of signals it may need to handle at single point in time
 		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 
 		// start the sync go routine
 		go originSync(ctx, name,
 			originConsul, originVault,
 			tick, timeout,
-			originSyncPath, dataPaths,
+			originSyncPath, originMounts,
 			hasher, numBuckets, numWorkers,
 			errCh)
 
@@ -147,6 +152,7 @@ var originCmd = &cobra.Command{
 				if apperr.ShouldPanic(err) {
 					telemetryClient.Count("vsync.origin.error", 1, "type:panic")
 					cancel()
+					time.Sleep(1 * time.Second)
 					close(errCh)
 					close(sigCh)
 					log.Panic().Interface("ops", apperr.Ops(err)).Msg(err.Error())
@@ -154,6 +160,7 @@ var originCmd = &cobra.Command{
 				} else if apperr.ShouldStop(err) {
 					telemetryClient.Count("vsync.origin.error", 1, "type:fatal")
 					cancel()
+					time.Sleep(1 * time.Second)
 					close(errCh)
 					close(sigCh)
 					log.Error().Interface("ops", apperr.Ops(err)).Msg(err.Error())
@@ -166,6 +173,7 @@ var originCmd = &cobra.Command{
 				telemetryClient.Count("vsync.origin.interrupt", 1)
 				log.Error().Interface("signal", sig).Msg("signal received, closing all go routines")
 				cancel()
+				time.Sleep(1 * time.Second)
 				close(errCh)
 				close(sigCh)
 				return apperr.New(fmt.Sprintf("signal received %q, closing all go routines", sig), err, op, apperr.Fatal, ErrInterrupted)
@@ -177,14 +185,14 @@ var originCmd = &cobra.Command{
 func originSync(ctx context.Context, name string,
 	originConsul *consul.Client, originVault *vault.Client,
 	tick time.Duration, timeout time.Duration,
-	originSyncPath string, dataPaths []string,
+	originSyncPath string, originMounts []string,
 	hasher hash.Hash, numBuckets int, numWorkers int,
 	errCh chan error) {
 	const op = apperr.Op("cmd.originSync")
 
 	metaPaths := []string{}
-	for _, dataPath := range dataPaths {
-		metaPaths = append(metaPaths, vault.GetMetaPath(dataPath))
+	for _, mount := range originMounts {
+		metaPaths = append(metaPaths, fmt.Sprintf("%smetadata", mount))
 	}
 
 	ticker := time.NewTicker(tick)
@@ -206,16 +214,16 @@ func originSync(ctx context.Context, name string,
 
 			syncCtx, syncCancel := context.WithTimeout(ctx, timeout)
 
-			// Checking token permission before starting each cycle
-			for _, dataPath := range dataPaths {
-				err := originVault.DataPathChecks(dataPath, vault.StdCheck, name)
+			// check origin token permission before starting each cycle
+			for _, oMount := range originMounts {
+				err := originVault.MountChecks(oMount, vault.StdCheck, name)
 				if err != nil {
-					log.Debug().Err(err).Msg("failures on data paths checks")
+					log.Debug().Err(err).Msg("failures on data paths checks on origin")
 					errCh <- apperr.New(fmt.Sprintf("failures on data paths checks on origin"), err, op, apperr.Fatal, ErrInitialize)
 
 					syncCancel()
 					time.Sleep(500 * time.Microsecond)
-					telemetryClient.Count("vsync.origin.cycle", 1, "status:failure")
+					telemetryClient.Count("vsync.destination.cycle", 1, "status:failure")
 					log.Info().Msg("incomplete sync cycle, failure in vault connectivity or token permission\n")
 					return
 				}

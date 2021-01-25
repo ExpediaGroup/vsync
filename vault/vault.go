@@ -157,9 +157,14 @@ func (v *Client) TokenRenewer(ctx context.Context, errCh chan error) {
 	}
 
 	tick := time.Duration(float64(ttl)*0.85) * time.Second
-	if tick <= 0 {
-		log.Debug().Err(err).Msg("cannot be 0 or negative ttl value for token")
-		errCh <- apperr.New(fmt.Sprintf("cannot be 0 or negative ttl value for token"), err, op, apperr.Fatal, ErrInitialize)
+	if tick == 0 {
+		log.Warn().Err(err).Msg("ttl is 0 for origin token")
+		errCh <- apperr.New(fmt.Sprintf("ttl is 0 for origin token"), err, op, apperr.Warn, ErrInitialize)
+		return
+	}
+	if tick < 0 {
+		log.Debug().Err(err).Msg("cannot be negative ttl value for origin token")
+		errCh <- apperr.New(fmt.Sprintf("cannot be negative ttl value for origin token"), err, op, apperr.Fatal, ErrInitialize)
 		return
 	}
 
