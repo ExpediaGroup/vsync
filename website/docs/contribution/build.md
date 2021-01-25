@@ -64,7 +64,7 @@ All commit messages must follow:
 * Major -> `ma: attributes: commit message`
 
 ## Contributing
-Pull requests are welcome. Please refer to our [CONTRIBUTING](./CONTRIBUTING.md) file.
+Pull requests are welcome. Please refer to our CONTRIBUTING file.
 
 ## Legal
 This project is available under the [Apache 2.0 License](http://www.apache.org/licenses/LICENSE-2.0.html).

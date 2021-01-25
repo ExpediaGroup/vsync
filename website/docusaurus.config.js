@@ -13,7 +13,7 @@ module.exports = {
         alt: 'vsync logo',
         src: 'img/icon.png',
       },
-      links: [
+      items: [
         {to: 'docs/getstarted/why', label: 'Docs', position: 'left'},
         {
           href: 'https://github.com/ExpediaGroup/vsync',
