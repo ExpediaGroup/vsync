@@ -54,7 +54,7 @@ Create a fresh `sync info` to store vsync metadata. It needs to be safe for conc
 
 #### Step 2
 
-For an interval (default: 1m) we get a list of paths recursively that needs to be synced based on data paths. Example, for datapath `secret/` we get absolute paths `[secret/metadata/stage/app1, secret/metadata/stage/app2]`
+For an interval (default: 1m) we get a list of paths recursively that needs to be synced based on data paths. Example, for mount `secret/` we get absolute paths `[secret/metadata/stage/app1, secret/metadata/stage/app2]`
 
 #### Step 3
 

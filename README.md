@@ -14,3 +14,7 @@ Cleanly closes the cycles
 * Meta sync information is stored in consul
 
 Website: https://expediagroup.github.io/vsync
+
+[Release](https://github.com/ExpediaGroup/vsync/releases)
+
+[Changelog](./CHANGELOG.md)

@@ -22,6 +22,7 @@ sidebar_label: Config
 `syncPath` : consul kv path where vsync has to store its meta data (default: "vsync/")
 
 `dataPaths` : array of vault paths / mounts which needs to be synced
+> Deprecated after v0.0.1, replaced by mounts in origin and destination
 
 `log.level` : level of logs that needs to be printed to output; options: info | debug (default: "info")
 
@@ -39,7 +40,9 @@ sidebar_label: Config
 
 `origin.vault.address` : origin vault address where we need to get metadata ( vault kv metadata ). "--origin.vault.address" cli param
 
-`origin.vault.token` : origin vault token which has permissions to read, update, write in vault datapaths. "--origin.vault.token" cli param
+`origin.vault.token` : origin vault token which has permissions to read, update, write in vault mounts. "--origin.vault.token" cli param
+
+`origin.mounts` : array of vault paths / mounts which needs to be synced. Each value needs to end with /. Token permissions to read, update, delete are checked for each cycle.
 
 `origin.consul.address` : origin consul address where we need to store vsync meta data ( sync info ). "--origin.consul.address" cli param
 
@@ -61,7 +64,9 @@ sidebar_label: Config
 
 `destination.vault.address` : destination vault address where we need to get metadata ( vault kv metadata ). "--destination.vault.address" cli param
 
-`destination.vault.token` : destination vault token which has permissions to read, update, write in vault datapaths. "--destination.vault.token" cli param
+`destination.vault.token` : destination vault token which has permissions to read, update, write in vault mounts. "--destination.vault.token" cli param
+
+`destination.mounts` : array of vault paths / mounts which needs to be synced. Each value needs to end with /. Token permissions to read, update, delete are checked for each cycle.
 
 `destination.consul.address` : destination consul address where we need to store vsync meta data ( sync info ). "--destination.consul.address" cli param
 
@@ -85,9 +90,6 @@ Supported format: json, hcl, yaml through [viper](https://github.com/spf13/viper
 ```
 {
     "syncPath": "vsync/",
-    "dataPaths": [
-        "secret/"
-    ],
     "log": {
         "level": "debug",
         "type": "console"
@@ -103,6 +105,9 @@ Supported format: json, hcl, yaml through [viper](https://github.com/spf13/viper
         "consul": {
             "address": "http://127.0.0.1:6500"
         },
+        "mounts": [
+            "secret/"
+        ],
         "numWorkers": 5,
         "tick": "10s",
         "timeout": "10s"
@@ -115,9 +120,6 @@ Supported format: json, hcl, yaml through [viper](https://github.com/spf13/viper
 ```
 {
     "syncPath": "vsync/",
-    "dataPaths": [
-        "secret/"
-    ],
     "log": {
         "level": "debug",
         "type": "console"
@@ -132,6 +134,9 @@ Supported format: json, hcl, yaml through [viper](https://github.com/spf13/viper
         "consul": {
             "address": "http://127.0.0.1:6500"
         },
+        "mounts": [
+            "secret/"
+        ],
         "numWorkers": 5,
         "tick": "10s",
         "timeout": "10s"
@@ -157,9 +162,6 @@ Supported format: json, hcl, yaml through [viper](https://github.com/spf13/viper
 ```
 {
     "syncPath": "vsync/",
-    "dataPaths": [
-        "runner/"
-    ],
     "log": {
         "level": "debug",
         "type": "console"
@@ -174,6 +176,9 @@ Supported format: json, hcl, yaml through [viper](https://github.com/spf13/viper
         "consul": {
             "address": "http://127.0.0.1:6500"
         },
+        "mounts": [
+            "runner/"
+        ],
         "numWorkers": 5,
         "tick": "10s",
         "timeout": "10s"
@@ -208,9 +213,6 @@ We are transforming from one mount to another
 ```
 {
     "syncPath": "vsync/",
-    "dataPaths": [
-        "runner/"
-    ],
     "log": {
         "level": "debug",
         "type": "console"
@@ -225,6 +227,9 @@ We are transforming from one mount to another
         "consul": {
             "address": "http://127.0.0.1:6500"
         },
+        "mounts": [
+            "runner/"
+        ],
         "numWorkers": 5,
         "tick": "10s",
         "timeout": "10s"

@@ -1,9 +1,6 @@
 {
     "name": "origin",
     "syncPath": "vsync/",
-    "dataPaths": [
-        "secret/"
-    ],
     "log": {
         "level": "debug",
         "type": "console"
@@ -18,6 +15,9 @@
         "consul": {
             "address": "http://127.0.0.1:6500"
         },
+        "mounts": [
+            "secret/"
+        ],
         "numWorkers": 5,
         "tick": "10s",
         "timeout": "10s"
