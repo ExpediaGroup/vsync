@@ -19,17 +19,19 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rs/zerolog/log"
-	"github.com/spf13/viper"
 	"github.com/ExpediaGroup/vsync/apperr"
 	"github.com/ExpediaGroup/vsync/consul"
 	"github.com/ExpediaGroup/vsync/syncer"
 	"github.com/ExpediaGroup/vsync/vault"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/viper"
 )
 
 // getEssentials will return consul and vault after reading required parameters from config
 func getEssentials(mode string) (*consul.Client, *vault.Client, error) {
 	const op = apperr.Op("cmd.getEssentials")
+	var vaultRoleID string
+	var vaultSecretID string
 
 	// consul client
 	consulAddress := viper.GetString(mode + "." + "consul.address")
@@ -57,7 +59,21 @@ func getEssentials(mode string) (*consul.Client, *vault.Client, error) {
 	if vaultToken != "" {
 		log.Debug().Str("mode", mode).Msg("got vault token")
 	} else {
-		return nil, nil, apperr.New(fmt.Sprintf("cannot get %s vault token", mode), ErrInitialize, op, apperr.Fatal)
+		log.Debug().Str("mode", mode).Msg("cannot got vault token")
+
+		vaultSecretID = viper.GetString(mode + "." + "vault.secret_id")
+		if vaultSecretID != "" {
+			log.Debug().Str("mode", mode).Msg("got vault secret id")
+		} else {
+			return nil, nil, apperr.New(fmt.Sprintf("cannot get %s vault secret id", mode), ErrInitialize, op, apperr.Fatal)
+		}
+
+		vaultRoleID = viper.GetString(mode + "." + "vault.role_id")
+		if vaultRoleID != "" {
+			log.Debug().Str("mode", mode).Msg("got vault role id")
+		} else {
+			return nil, nil, apperr.New(fmt.Sprintf("cannot get %s vault role id", mode), ErrInitialize, op, apperr.Fatal)
+		}
 	}
 
 	vaultAddress := viper.GetString(mode + "." + "vault.address")
@@ -67,7 +83,7 @@ func getEssentials(mode string) (*consul.Client, *vault.Client, error) {
 		return nil, nil, apperr.New(fmt.Sprintf("cannot get %s vault address", mode), ErrInitialize, op, apperr.Fatal)
 	}
 
-	v, err := vault.NewClient(vaultAddress, vaultToken)
+	v, err := vault.NewClient(vaultAddress, vaultToken, vaultRoleID, vaultSecretID)
 	if err != nil {
 		log.Debug().Err(err).Str("mode", mode).Msg("cannot get vault client")
 		return c, nil, apperr.New(fmt.Sprintf("cannot get %s vault client", mode), err, op, apperr.Fatal, ErrInitialize)

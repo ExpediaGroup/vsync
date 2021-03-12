@@ -27,11 +27,13 @@ import (
 )
 
 var (
-	ErrInitialize   = fmt.Errorf("cannot initialize vault client")
-	ErrInvalidToken = fmt.Errorf("check token permission")
-	ErrConnection   = fmt.Errorf("vault connection refused")
-	ErrInvalidPath  = fmt.Errorf("invalid path")
-	ErrCastPathData = fmt.Errorf("type cast errors on data from path")
+	ErrInitialize      = fmt.Errorf("cannot initialize vault client")
+	ErrInvalidToken    = fmt.Errorf("check token permission")
+	ErrConnection      = fmt.Errorf("vault connection refused")
+	ErrInvalidPath     = fmt.Errorf("invalid path")
+	ErrCastPathData    = fmt.Errorf("type cast errors on data from path")
+	ErrInvalidSecretId = fmt.Errorf("invalid secret id")
+	ErrInvalidRoleId   = fmt.Errorf("invalid role id")
 )
 
 type Client struct {
@@ -39,7 +41,16 @@ type Client struct {
 	Address string
 }
 
-func NewClient(address string, token string) (*Client, error) {
+type authAppRolePlugin struct {
+	client *api.Client
+}
+
+type appRoleLogin struct {
+	RoleID   string `json:"role_id,omitempty"`
+	SecretID string `json:"secret_id,omitempty"`
+}
+
+func NewClient(address string, token string, roleID string, secretID string) (*Client, error) {
 	const op = apperr.Op("vault.NewClient")
 
 	config := api.DefaultConfig()
@@ -53,11 +64,58 @@ func NewClient(address string, token string) (*Client, error) {
 		return nil, apperr.New(fmt.Sprintf("cannot create vault client, address %q", address), err, op, apperr.Fatal, ErrInitialize)
 	}
 
+	if roleID != "" && secretID != "" && token != "" {
+		log.Debug().Err(err).Msg("cannot use secret and approle together")
+		return nil, apperr.New(fmt.Sprintf("cannot use secret and approle together %q", address), err, op, apperr.Fatal, ErrInitialize)
+	}
+
+	// Get approle token
+	if roleID != "" && secretID != "" {
+		token, err = GetAppRoleToken(address, roleID, secretID)
+		if err != nil {
+			fmt.Printf("%v", err)
+		}
+	}
+
 	client.SetToken(token)
+
 	return &Client{
 		Client:  client,
 		Address: address,
 	}, nil
+}
+
+// GetApproleToken return an approle token for a given role_id/secret_id
+// Extract from https://github.com/UKHomeOffice/vault-sidekick/blob/master/auth_approle.go
+func GetAppRoleToken(address string, roleID string, secretID string) (token string, err error) {
+	const op = apperr.Op("vault.GetAppRoleToken")
+
+	config := api.DefaultConfig()
+	if address != "" {
+		config.Address = address
+	}
+
+	client, err := api.NewClient(config)
+
+	// step: create the token request
+	request := client.NewRequest("POST", "/v1/auth/approle/login")
+	login := appRoleLogin{SecretID: secretID, RoleID: roleID}
+	if err := request.SetJSONBody(login); err != nil {
+		return "", err
+	}
+	// step: make the request
+	resp, err := client.RawRequest(request)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// step: parse and return auth
+	secret, err := api.ParseSecret(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return secret.Auth.ClientToken, nil
 }
 
 // DeepListPaths returns set of paths and folders
