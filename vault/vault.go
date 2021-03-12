@@ -85,7 +85,7 @@ func NewClient(address string, token string, roleID string, secretID string) (*C
 	}, nil
 }
 
-// GetApproleToken return an approle token for a given role_id/secret_id
+// GetAppRoleToken return an approle token for a given role_id/secret_id
 // Extract from https://github.com/UKHomeOffice/vault-sidekick/blob/master/auth_approle.go
 func GetAppRoleToken(address string, roleID string, secretID string) (token string, err error) {
 	const op = apperr.Op("vault.GetAppRoleToken")
@@ -101,19 +101,20 @@ func GetAppRoleToken(address string, roleID string, secretID string) (token stri
 	request := client.NewRequest("POST", "/v1/auth/approle/login")
 	login := appRoleLogin{SecretID: secretID, RoleID: roleID}
 	if err := request.SetJSONBody(login); err != nil {
-		return "", err
+		return "", apperr.New(fmt.Sprintf("cannot parse the approle token"), err, op, apperr.Fatal, ErrInitialize)
+
 	}
 	// step: make the request
 	resp, err := client.RawRequest(request)
 	if err != nil {
-		return "", err
+		return "", apperr.New(fmt.Sprintf("cannot do the login approle request"), err, op, apperr.Fatal, ErrInitialize)
 	}
 	defer resp.Body.Close()
 
 	// step: parse and return auth
 	secret, err := api.ParseSecret(resp.Body)
 	if err != nil {
-		return "", err
+		return "", apperr.New(fmt.Sprintf("cannot get the approle token"), err, op, apperr.Fatal, ErrInitialize)
 	}
 	return secret.Auth.ClientToken, nil
 }
