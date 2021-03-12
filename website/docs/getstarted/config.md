@@ -22,6 +22,7 @@ sidebar_label: Config
 `syncPath` : consul kv path where vsync has to store its meta data (default: "vsync/")
 
 `dataPaths` : array of vault paths / mounts which needs to be synced
+
 > Deprecated after v0.0.1, replaced by mounts in origin and destination
 
 `log.level` : level of logs that needs to be printed to output; options: info | debug (default: "info")
@@ -41,6 +42,10 @@ sidebar_label: Config
 `origin.vault.address` : origin vault address where we need to get metadata ( vault kv metadata ). "--origin.vault.address" cli param
 
 `origin.vault.token` : origin vault token which has permissions to read, update, write in vault mounts. "--origin.vault.token" cli param
+
+`origin.vault.role_id` : origin vault role_id from an approle which has permissions to read, update, write in vault mounts. "--origin.vault.role_id" cli param (use token OR approle)
+
+`origin.vault.secret_id` : origin vault secret_id from an approle which has permissions to read, update, write in vault mounts. "--origin.vault.secret_id" cli param (use token OR approle)
 
 `origin.mounts` : array of vault paths / mounts which needs to be synced. Each value needs to end with /. Token permissions to read, update, delete are checked for each cycle.
 
@@ -66,6 +71,10 @@ sidebar_label: Config
 
 `destination.vault.token` : destination vault token which has permissions to read, update, write in vault mounts. "--destination.vault.token" cli param
 
+`destination.vault.role_id` : destination vault role_id from an approle which has permissions to read, update, write in vault mounts. "--destination.vault.role_id" cli param (use token OR approle)
+
+`destination.vault.secret_id` : destination vault secret_id from an approle which has permissions to read, update, write in vault mounts. "--destination.vault.secret_id" cli param (use token OR approle)
+
 `destination.mounts` : array of vault paths / mounts which needs to be synced. Each value needs to end with /. Token permissions to read, update, delete are checked for each cycle.
 
 `destination.consul.address` : destination consul address where we need to store vsync meta data ( sync info ). "--destination.consul.address" cli param
@@ -87,6 +96,7 @@ Supported format: json, hcl, yaml through [viper](https://github.com/spf13/viper
 ## Examples
 
 ### Origin
+
 ```
 {
     "syncPath": "vsync/",
