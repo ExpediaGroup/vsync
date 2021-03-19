@@ -73,7 +73,7 @@ func NewClient(address string, token string, roleID string, secretID string) (*C
 	if roleID != "" && secretID != "" {
 		token, err = GetAppRoleToken(address, roleID, secretID)
 		if err != nil {
-			fmt.Printf("%v", err)
+			return nil, apperr.New(fmt.Sprintf("cannot get correct a token from role_id: %q and secret_id: %q, %v", roleID, secretID, err), err, op, apperr.Fatal, ErrInitialize)
 		}
 	}
 
