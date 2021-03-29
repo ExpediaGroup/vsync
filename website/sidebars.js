@@ -10,7 +10,7 @@ module.exports = {
     GetStarted: ['getstarted/why', 'getstarted/install','getstarted/config'],
     Deploy: ['deploy/options'],
     Internals: ['internals/keywords', 'internals/origin', 'internals/destination'],
-    Faq: ['faq'],
+    Faq: ['faq/general', 'faq/deployment', 'faq/failures'],
     Contribution: ['contribution/build', 'contribution/ci', 'contribution/goodparts'],
   },
 };

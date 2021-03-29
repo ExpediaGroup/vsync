@@ -1,7 +1,7 @@
 ---
-id: faq
-title: Faq
-sidebar_label: Faq
+id: general
+title: General
+sidebar_label: General
 ---
 
 ## Why
@@ -37,30 +37,3 @@ It primarily uses streaming write ahead log to get changes propagated to other v
 3. 50 mb of memory
 4. 500 Mhz of cpu (may be less, like 300 Mhz)
 5. 300 Mb of disk space (may be less)
-
-## Deployment
-
-
-### Why we choose nomad?
-
-* Good integration between vault and nomad
-* Jobs will restart itself if something happens
-* Canary deployments
-* Isolated Fork/Exec Driver
-* Hashicorp quality
-
-## Failures
-
-### If I delete the sync info in consul
-
-Vsync will stop with a fatal error, if you restart vsync it should be fine again
-
-### If there is no origin sync info yet for destination
-
-Destination will wait for some time and then throw fatal error that it could not hook the consul watch on sync info
-
-### Does not halt / stop syncing
-
-It is designed not to stop sync because of copying one secret from origin to destination.
-
-It should stop with fatal error for major error like if it could not start the cycle, missing required vault token permission etc
