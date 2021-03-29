@@ -74,6 +74,9 @@ var destinationCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		const op = apperr.Op("cmd.destination")
 
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
 		// initial configs
 		name := viper.GetString("name")
 		syncPath := viper.GetString("syncPath")
@@ -85,15 +88,13 @@ var destinationCmd = &cobra.Command{
 		destinationMounts := viper.GetStringSlice("destination.mounts")
 		hasher := sha256.New()
 
-		// telemetry client
+		// name is required for mount checks and telemetry
 		if name != "" {
-			telemetryClient.AddTags("mpaas_application_name:vsync_" + name)
-		} else {
-			telemetryClient.AddTags("mpaas_application_name:vsync_dest")
+			name = "destination"
 		}
 
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+		// telemetry client
+		telemetryClient.AddTags("mpaas_application_name:vsync_" + name)
 
 		// get destination consul and vault
 		destinationConsul, destinationVault, err := getEssentials("destination")
