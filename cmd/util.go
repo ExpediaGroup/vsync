@@ -100,6 +100,7 @@ func getEssentials(mode string) (*consul.Client, *vault.Client, error) {
 		log.Debug().Err(err).Str("mode", mode).Msg("cannot get vault client")
 		return c, nil, apperr.New(fmt.Sprintf("cannot get %s vault client", mode), err, op, apperr.Fatal, ErrInitialize)
 	}
+	v.Mode = mode
 
 	return c, v, nil
 }
