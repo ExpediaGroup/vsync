@@ -27,19 +27,22 @@ import (
 )
 
 var (
-	ErrInitialize   = fmt.Errorf("cannot initialize vault client")
-	ErrInvalidToken = fmt.Errorf("check token permission")
-	ErrConnection   = fmt.Errorf("vault connection refused")
-	ErrInvalidPath  = fmt.Errorf("invalid path")
-	ErrCastPathData = fmt.Errorf("type cast errors on data from path")
+	ErrInitialize      = fmt.Errorf("cannot initialize vault client")
+	ErrInvalidToken    = fmt.Errorf("check token permission")
+	ErrConnection      = fmt.Errorf("vault connection refused")
+	ErrInvalidPath     = fmt.Errorf("invalid path")
+	ErrCastPathData    = fmt.Errorf("type cast errors on data from path")
+	ErrInvalidSecretId = fmt.Errorf("invalid secret id")
+	ErrInvalidRoleId   = fmt.Errorf("invalid role id")
 )
 
 type Client struct {
 	*api.Client
 	Address string
+	Mode string
 }
 
-func NewClient(address string, token string) (*Client, error) {
+func NewClient(address string, token string, approlePath string, roleID string, secretID string) (*Client, error) {
 	const op = apperr.Op("vault.NewClient")
 
 	config := api.DefaultConfig()
@@ -53,7 +56,25 @@ func NewClient(address string, token string) (*Client, error) {
 		return nil, apperr.New(fmt.Sprintf("cannot create vault client, address %q", address), err, op, apperr.Fatal, ErrInitialize)
 	}
 
+	if roleID != "" && secretID != "" && token != "" {
+		log.Debug().Err(err).Msg("cannot use secret and approle together")
+		return nil, apperr.New(fmt.Sprintf("cannot use secret and approle together %q", address), err, op, apperr.Fatal, ErrInitialize)
+	}
+
+	// Get approle token
+	if roleID != "" && secretID != "" {
+		resp, err := client.Logical().Write(fmt.Sprintf("auth/%s/login", approlePath), map[string]interface{}{
+			"role_id":   roleID,
+			"secret_id": secretID,
+		})
+		if err != nil {
+			return nil, apperr.New(fmt.Sprintf("cannot get correct a token from approle role_id and secret_id"), err, op, apperr.Fatal, ErrInitialize)
+		}
+		token = resp.Auth.ClientToken
+	}
+
 	client.SetToken(token)
+
 	return &Client{
 		Client:  client,
 		Address: address,
@@ -140,31 +161,31 @@ func (v *Client) TokenRenewer(ctx context.Context, errCh chan error) {
 	const op = apperr.Op("vault.TokenRenewer")
 	lookup, err := v.Auth().Token().LookupSelf()
 	if err != nil {
-		log.Debug().Err(err).Msg("cannot get info for self token")
-		errCh <- apperr.New(fmt.Sprintf("cannot get info for self token"), err, op, apperr.Fatal, ErrInitialize)
+		log.Debug().Str("mode", v.Mode).Err(err).Msg("cannot get info for self token")
+		errCh <- apperr.New(fmt.Sprintf("cannot get info for self token for %s", v.Mode), err, op, apperr.Fatal, ErrInitialize)
 	}
 
 	i, ok := lookup.Data["creation_ttl"]
 	if !ok {
-		log.Debug().Msg("error while getting creation ttl")
-		errCh <- apperr.New(fmt.Sprintf("error while getting creation ttl"), err, op, apperr.Fatal, ErrInitialize)
+		log.Debug().Str("mode", v.Mode).Msg("error while getting creation ttl")
+		errCh <- apperr.New(fmt.Sprintf("error while getting creation ttl for %s", v.Mode), err, op, apperr.Fatal, ErrInitialize)
 	}
 
 	ttl, err := i.(json.Number).Int64()
 	if err != nil {
-		log.Debug().Err(err).Msg("cannot get convert creation ttl to int")
-		errCh <- apperr.New(fmt.Sprintf("cannot get convert creation ttl to int"), err, op, apperr.Fatal, ErrInitialize)
+		log.Debug().Str("mode", v.Mode).Err(err).Msg("cannot get convert creation ttl to int")
+		errCh <- apperr.New(fmt.Sprintf("cannot get convert creation ttl to int for %s", v.Mode), err, op, apperr.Fatal, ErrInitialize)
 	}
 
 	tick := time.Duration(float64(ttl)*0.85) * time.Second
 	if tick == 0 {
-		log.Warn().Err(err).Msg("ttl is 0 for origin token")
-		errCh <- apperr.New(fmt.Sprintf("ttl is 0 for origin token"), err, op, apperr.Warn, ErrInitialize)
+		log.Warn().Str("mode", v.Mode).Err(err).Msg("ttl is 0 for origin token")
+		errCh <- apperr.New(fmt.Sprintf("ttl is 0 for origin token for %s", v.Mode), err, op, apperr.Warn, ErrInitialize)
 		return
 	}
 	if tick < 0 {
-		log.Debug().Err(err).Msg("cannot be negative ttl value for origin token")
-		errCh <- apperr.New(fmt.Sprintf("cannot be negative ttl value for origin token"), err, op, apperr.Fatal, ErrInitialize)
+		log.Debug().Str("mode", v.Mode).Err(err).Msg("cannot be negative ttl value for origin token")
+		errCh <- apperr.New(fmt.Sprintf("cannot be negative ttl value for origin token for %s", v.Mode), err, op, apperr.Fatal, ErrInitialize)
 		return
 	}
 
@@ -173,8 +194,8 @@ func (v *Client) TokenRenewer(ctx context.Context, errCh chan error) {
 	// refresh the token so that our tick calculation will be always valid
 	_, err = v.Auth().Token().RenewSelf(int(ttl))
 	if err != nil {
-		log.Debug().Err(err).Msg("cannot renew self token for the first time")
-		errCh <- apperr.New(fmt.Sprintf("cannot renew self token for the first time"), err, op, apperr.Fatal, ErrInvalidToken)
+		log.Debug().Str("mode", v.Mode).Err(err).Msg("cannot renew self token for the first time")
+		errCh <- apperr.New(fmt.Sprintf("cannot renew self token for the first time for %s", v.Mode), err, op, apperr.Fatal, ErrInvalidToken)
 		return
 	}
 
@@ -183,25 +204,25 @@ func (v *Client) TokenRenewer(ctx context.Context, errCh chan error) {
 		case <-ctx.Done():
 			ticker.Stop()
 			time.Sleep(100 * time.Microsecond)
-			log.Debug().Str("trigger", "context done").Msg("closed token renewer")
+			log.Debug().Str("mode", v.Mode).Str("trigger", "context done").Msg("closed token renewer")
 			return
 		case <-ticker.C:
 			resp, err := v.Auth().Token().RenewSelf(int(ttl))
 			if err != nil {
-				log.Debug().Err(err).Msg("cannot renew self token")
-				errCh <- apperr.New(fmt.Sprintf("cannot renew self token"), err, op, apperr.Fatal, ErrInvalidToken)
+				log.Debug().Str("mode", v.Mode).Err(err).Msg("cannot renew self token")
+				errCh <- apperr.New(fmt.Sprintf("cannot renew self token for %s", v.Mode), err, op, apperr.Fatal, ErrInvalidToken)
 				return
 			}
 
 			newToken, err := resp.TokenID()
 			if err != nil {
-				log.Debug().Err(err).Msg("cannot get new token")
-				errCh <- apperr.New(fmt.Sprintf("cannot get new token"), err, op, apperr.Fatal, ErrInvalidToken)
+				log.Debug().Str("mode", v.Mode).Err(err).Msg("cannot get new token")
+				errCh <- apperr.New(fmt.Sprintf("cannot get new token for %s", v.Mode), err, op, apperr.Fatal, ErrInvalidToken)
 				return
 			}
 
 			v.SetToken(newToken)
-			log.Debug().Msg("vault token renewed")
+			log.Info().Str("mode", v.Mode).Msg("vault token renewed")
 		}
 	}
 }

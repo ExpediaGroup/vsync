@@ -218,6 +218,10 @@ var destinationCmd = &cobra.Command{
 		if viper.GetBool("origin.renewToken") {
 			go originVault.TokenRenewer(ctx, errCh)
 		}
+		// destination token renewer go routine
+		if viper.GetBool("destination.renewToken") {
+			go destinationVault.TokenRenewer(ctx, errCh)
+		}
 
 		// lock the main go routine in for select until we get os signals
 		for {

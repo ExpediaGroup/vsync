@@ -1,0 +1,42 @@
+{
+  "name": "dest_v3",
+  "syncPath": "vsync/",
+  "log": {
+    "level": "debug",
+    "type": "console"
+  },
+  "numBuckets": 19,
+  "origin": {
+    "dc": "dc1",
+    "vault": {
+      "address": "http://127.0.0.1:8200",
+      "approle": {
+        "path": "approle",
+        "role_id": "1a871568-7728-7ec2-3848-6e4250659198",
+        "secret_id": "bca693d3-1a7a-0fd1-10f9-9c61e10d207c"
+      }
+    },
+    "consul": {
+      "address": "http://127.0.0.1:8500"
+    },
+    "mounts": ["secret/"],
+    "numWorkers": 5,
+    "tick": "10s",
+    "timeout": "10s",
+    "renewToken": true
+  },
+  "destination": {
+    "dc": "dc2",
+    "vault": {
+      "address": "http://127.0.0.1:7200",
+      "token": "s.5LvYTJQhwyh2CvrZtUpnHeLb"
+    },
+    "consul": {
+      "address": "http://127.0.0.1:7500"
+    },
+    "mounts": ["secret/"],
+    "numWorkers": 10,
+    "tick": "10s",
+    "timeout": "10s"
+  }
+}
