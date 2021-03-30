@@ -144,6 +144,11 @@ var originCmd = &cobra.Command{
 			hasher, numBuckets, numWorkers,
 			errCh)
 
+		// origin token renewer go routine
+		if viper.GetBool("origin.renewToken") {
+			go originVault.TokenRenewer(ctx, errCh)
+		}
+
 		// lock the main go routine in for select until we get os signals
 		for {
 			select {
