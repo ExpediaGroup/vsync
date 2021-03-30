@@ -41,16 +41,7 @@ type Client struct {
 	Address string
 }
 
-type authAppRolePlugin struct {
-	client *api.Client
-}
-
-type appRoleLogin struct {
-	RoleID   string `json:"role_id,omitempty"`
-	SecretID string `json:"secret_id,omitempty"`
-}
-
-func NewClient(address string, token string, roleID string, secretID string) (*Client, error) {
+func NewClient(address string, token string, approlePath string, roleID string, secretID string) (*Client, error) {
 	const op = apperr.Op("vault.NewClient")
 
 	config := api.DefaultConfig()
@@ -71,10 +62,14 @@ func NewClient(address string, token string, roleID string, secretID string) (*C
 
 	// Get approle token
 	if roleID != "" && secretID != "" {
-		token, err = GetAppRoleToken(address, roleID, secretID)
+		resp, err := client.Logical().Write(fmt.Sprintf("auth/%s/login", approlePath), map[string]interface{}{
+			"role_id":   roleID,
+			"secret_id": secretID,
+		})
 		if err != nil {
-			return nil, apperr.New(fmt.Sprintf("cannot get correct a token from role_id: %q and secret_id: %q, %v", roleID, secretID, err), err, op, apperr.Fatal, ErrInitialize)
+			return nil, apperr.New(fmt.Sprintf("cannot get correct a token from approle role_id and secret_id"), err, op, apperr.Fatal, ErrInitialize)
 		}
+		token = resp.Auth.ClientToken
 	}
 
 	client.SetToken(token)
@@ -83,40 +78,6 @@ func NewClient(address string, token string, roleID string, secretID string) (*C
 		Client:  client,
 		Address: address,
 	}, nil
-}
-
-// GetAppRoleToken return an approle token for a given role_id/secret_id
-// Extract from https://github.com/UKHomeOffice/vault-sidekick/blob/master/auth_approle.go
-func GetAppRoleToken(address string, roleID string, secretID string) (token string, err error) {
-	const op = apperr.Op("vault.GetAppRoleToken")
-
-	config := api.DefaultConfig()
-	if address != "" {
-		config.Address = address
-	}
-
-	client, err := api.NewClient(config)
-
-	// step: create the token request
-	request := client.NewRequest("POST", "/v1/auth/approle/login")
-	login := appRoleLogin{SecretID: secretID, RoleID: roleID}
-	if err := request.SetJSONBody(login); err != nil {
-		return "", apperr.New(fmt.Sprintf("cannot parse the approle token"), err, op, apperr.Fatal, ErrInitialize)
-
-	}
-	// step: make the request
-	resp, err := client.RawRequest(request)
-	if err != nil {
-		return "", apperr.New(fmt.Sprintf("cannot do the login approle request"), err, op, apperr.Fatal, ErrInitialize)
-	}
-	defer resp.Body.Close()
-
-	// step: parse and return auth
-	secret, err := api.ParseSecret(resp.Body)
-	if err != nil {
-		return "", apperr.New(fmt.Sprintf("cannot get the approle token"), err, op, apperr.Fatal, ErrInitialize)
-	}
-	return secret.Auth.ClientToken, nil
 }
 
 // DeepListPaths returns set of paths and folders

@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"strings"
 
 	"github.com/ExpediaGroup/vsync/apperr"
 	"github.com/ExpediaGroup/vsync/consul"
@@ -30,6 +31,7 @@ import (
 // getEssentials will return consul and vault after reading required parameters from config
 func getEssentials(mode string) (*consul.Client, *vault.Client, error) {
 	const op = apperr.Op("cmd.getEssentials")
+	var vaultApprolePath string
 	var vaultRoleID string
 	var vaultSecretID string
 
@@ -59,20 +61,30 @@ func getEssentials(mode string) (*consul.Client, *vault.Client, error) {
 	if vaultToken != "" {
 		log.Debug().Str("mode", mode).Msg("got vault token")
 	} else {
-		log.Debug().Str("mode", mode).Msg("cannot got vault token")
+		log.Info().Str("mode", mode).Msg("cannot get vault token")
 
-		vaultSecretID = viper.GetString(mode + "." + "vault.secret_id")
-		if vaultSecretID != "" {
-			log.Debug().Str("mode", mode).Msg("got vault secret id")
+		vaultApprolePath = viper.GetString(mode + "." + "vault.approle.path")
+		if vaultApprolePath != "" {
+			vaultApprolePath = strings.TrimPrefix(vaultApprolePath, "/")
+			vaultApprolePath = strings.TrimSuffix(vaultApprolePath, "/")
+			log.Debug().Str("mode", mode).Msg("got vault approle path")
 		} else {
-			return nil, nil, apperr.New(fmt.Sprintf("cannot get %s vault secret id", mode), ErrInitialize, op, apperr.Fatal)
+			log.Debug().Str("mode", mode).Msg("selecting default vault approle path approle/")
+			vaultApprolePath = "approle"
 		}
 
-		vaultRoleID = viper.GetString(mode + "." + "vault.role_id")
+		vaultRoleID = viper.GetString(mode + "." + "vault.approle.role_id")
 		if vaultRoleID != "" {
 			log.Debug().Str("mode", mode).Msg("got vault role id")
 		} else {
 			return nil, nil, apperr.New(fmt.Sprintf("cannot get %s vault role id", mode), ErrInitialize, op, apperr.Fatal)
+		}
+
+		vaultSecretID = viper.GetString(mode + "." + "vault.approle.secret_id")
+		if vaultSecretID != "" {
+			log.Debug().Str("mode", mode).Msg("got vault secret id")
+		} else {
+			return nil, nil, apperr.New(fmt.Sprintf("cannot get %s vault secret id", mode), ErrInitialize, op, apperr.Fatal)
 		}
 	}
 
@@ -83,7 +95,7 @@ func getEssentials(mode string) (*consul.Client, *vault.Client, error) {
 		return nil, nil, apperr.New(fmt.Sprintf("cannot get %s vault address", mode), ErrInitialize, op, apperr.Fatal)
 	}
 
-	v, err := vault.NewClient(vaultAddress, vaultToken, vaultRoleID, vaultSecretID)
+	v, err := vault.NewClient(vaultAddress, vaultToken, vaultApprolePath, vaultRoleID, vaultSecretID)
 	if err != nil {
 		log.Debug().Err(err).Str("mode", mode).Msg("cannot get vault client")
 		return c, nil, apperr.New(fmt.Sprintf("cannot get %s vault client", mode), err, op, apperr.Fatal, ErrInitialize)

@@ -9,18 +9,21 @@
   "origin": {
     "dc": "dc1",
     "vault": {
-      "address": "http://127.0.0.1:6200",
-      "role_id": "4a79fd12-a1cd-430c-b991-5b9fcaf87887",
-      "secret_id": "eb27500d-f82b-49bc-8961-eb7ec5d8b305"
+      "address": "http://127.0.0.1:8200",
+      "approle": {
+        "path": "approle",
+        "role_id": "1a871568-7728-7ec2-3848-6e4250659198",
+        "secret_id": "bca693d3-1a7a-0fd1-10f9-9c61e10d207c"
+      }
     },
     "consul": {
-      "address": "http://127.0.0.1:6500"
+      "address": "http://127.0.0.1:8500"
     },
     "mounts": ["secret/"],
     "numWorkers": 5,
     "tick": "10s",
     "timeout": "10s",
-    "renewToken": false
+    "renewToken": true
   },
   "destination": {
     "dc": "dc2",
