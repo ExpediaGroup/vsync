@@ -38,6 +38,7 @@ import (
 )
 
 func init() {
+	viper.SetDefault("name", "destination") // name is required for mount checks and telemetry
 	viper.SetDefault("syncPath", "vsync/")
 	viper.SetDefault("numBuckets", 1) // we need atleast one bucket to store info
 	viper.SetDefault("destination.tick", "10s")
@@ -87,11 +88,6 @@ var destinationCmd = &cobra.Command{
 		originMounts := viper.GetStringSlice("origin.mounts")
 		destinationMounts := viper.GetStringSlice("destination.mounts")
 		hasher := sha256.New()
-
-		// name is required for mount checks and telemetry
-		if name != "" {
-			name = "destination"
-		}
 
 		// telemetry client
 		telemetryClient.AddTags("mpaas_application_name:vsync_" + name)
