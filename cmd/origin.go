@@ -51,7 +51,9 @@ func init() {
 			Msg("cannot bind flags with viper")
 	}
 
-	if err := viper.BindPFlags(originCmd.Flags()); err != nil {
+	f := originCmd.Flags()
+	f.MarkDeprecated("syncPath", "moved to specific type, use origin.syncPath")
+	if err := viper.BindPFlags(f); err != nil {
 		log.Panic().
 			Err(err).
 			Str("command", "origin").
