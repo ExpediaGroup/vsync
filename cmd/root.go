@@ -66,15 +66,15 @@ func init() {
 	rootCmd.PersistentFlags().String("log.level", "", "logger level (info|debug)")
 	rootCmd.PersistentFlags().String("log.type", "", "logger type (console|json)")
 
-	rootCmd.PersistentFlags().String("origin.dc", "", "origin datacenter")
+	rootCmd.PersistentFlags().String("origin.consul.dc", "", "origin consul datacenter")
 	rootCmd.PersistentFlags().String("origin.consul.address", "", "origin consul address")
 	rootCmd.PersistentFlags().String("origin.vault.address", "", "origin vault address")
 	rootCmd.PersistentFlags().String("origin.vault.token", "", "origin vault token")
 	rootCmd.PersistentFlags().String("origin.vault.role_id", "", "origin vault approle role_id")
 	rootCmd.PersistentFlags().String("origin.vault.secret_id", "", "origin vault approle secret_id")
 
-	rootCmd.PersistentFlags().String("destination.dc", "", "destination datacenter")
-	rootCmd.PersistentFlags().String("destination.consul.address", "", "destination vault address")
+	rootCmd.PersistentFlags().String("destination.consul.dc", "", "destination consul datacenter")
+	rootCmd.PersistentFlags().String("destination.consul.address", "", "destination consul address")
 	rootCmd.PersistentFlags().String("destination.vault.address", "", "destination vault address")
 	rootCmd.PersistentFlags().String("destination.vault.token", "", "destination vault token")
 	rootCmd.PersistentFlags().String("destination.vault.role_id", "", "destination vault approle role_id")

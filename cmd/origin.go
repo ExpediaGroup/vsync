@@ -37,10 +37,10 @@ import (
 
 func init() {
 	viper.SetDefault("name", "origin") // name is required for mount checks and telemetry
-	viper.SetDefault("syncPath", "vsync/")
-	viper.SetDefault("numBuckets", 1) // we need atleast one bucket to store info
+	viper.SetDefault("numBuckets", 1)  // we need atleast one bucket to store info
 	viper.SetDefault("origin.tick", "10s")
 	viper.SetDefault("origin.timeout", "5m")
+	viper.SetDefault("origin.syncPath", "vsync/")
 	viper.SetDefault("origin.numWorkers", 1) // we need atleast 1 worker or else the sync routine will be blocked
 
 	if err := viper.BindPFlags(originCmd.PersistentFlags()); err != nil {
@@ -51,9 +51,7 @@ func init() {
 			Msg("cannot bind flags with viper")
 	}
 
-	f := originCmd.Flags()
-	f.MarkDeprecated("syncPath", "moved to specific type, use origin.syncPath")
-	if err := viper.BindPFlags(f); err != nil {
+	if err := viper.BindPFlags(originCmd.Flags()); err != nil {
 		log.Panic().
 			Err(err).
 			Str("command", "origin").
@@ -79,13 +77,25 @@ var originCmd = &cobra.Command{
 
 		// initial configs
 		name := viper.GetString("name")
-		syncPath := viper.GetString("syncPath")
 		numBuckets := viper.GetInt("numBuckets")
 		tick := viper.GetDuration("origin.tick")
 		timeout := viper.GetDuration("origin.timeout")
 		numWorkers := viper.GetInt("origin.numWorkers")
+		originSyncPath := viper.GetString("origin.syncPath")
 		originMounts := viper.GetStringSlice("origin.mounts")
 		hasher := sha256.New()
+
+		// deprecated
+		syncPathDepr := viper.GetString("syncPath")
+		if syncPathDepr != "" {
+			log.Error().Str("mode", "origin").Str("syncPath", syncPathDepr).Msg("syncPath variable is deprecated, use origin.syncPath and destination.syncPath, they can be same value")
+			return apperr.New(fmt.Sprintf("parameter %q deprecated, use %q", "syncPath", "origin.syncPath"), ErrInitialize, op, apperr.Fatal)
+		}
+		originDcDepr := viper.GetString("origin.dc")
+		if originDcDepr != "" {
+			log.Error().Str("mode", "origin").Str("origin.dc", originDcDepr).Msg("origin.dc variable is deprecated, use origin.consul.dc")
+			return apperr.New(fmt.Sprintf("parameter %q deprecated, use %q", "origin.dc", "origin.consul.dc"), ErrInitialize, op, apperr.Fatal)
+		}
 
 		// telemetry client
 		telemetryClient.AddTags("mpaas_application_name:vsync_" + name)
@@ -98,10 +108,10 @@ var originCmd = &cobra.Command{
 		}
 
 		// perform inital checks on sync path, check kv and token permissions
-		if syncPath[len(syncPath)-1:] != "/" {
-			syncPath = syncPath + "/"
+		if originSyncPath[len(originSyncPath)-1:] != "/" {
+			originSyncPath = originSyncPath + "/"
 		}
-		originSyncPath := syncPath + "origin/"
+		originSyncPath = originSyncPath + "origin/" // adds type into sync path, useful in case we use same syncPath in same consul
 
 		err = originConsul.SyncPathChecks(originSyncPath, consul.StdCheck)
 		if err != nil {

@@ -17,8 +17,8 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/ExpediaGroup/vsync/apperr"
 	"github.com/ExpediaGroup/vsync/consul"
@@ -43,7 +43,7 @@ func getEssentials(mode string) (*consul.Client, *vault.Client, error) {
 		return nil, nil, apperr.New(fmt.Sprintf("cannot get %s consul address", mode), ErrInitialize, op, apperr.Fatal)
 	}
 
-	dc := viper.GetString(mode + "." + "dc")
+	dc := viper.GetString(mode + "." + "consul.dc")
 	if dc != "" {
 		log.Debug().Str("dc", dc).Str("mode", mode).Msg("datacenter from config")
 	} else {

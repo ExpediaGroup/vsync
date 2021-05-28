@@ -1,23 +1,23 @@
 {
     "name": "origin",
-    "syncPath": "vsync/",
     "log": {
         "level": "debug",
         "type": "console"
     },
     "numBuckets": 19,
     "origin": {
-        "dc": "dc1",
         "vault": {
             "address": "http://127.0.0.1:6200",
-            "token": "s.M1R5N97REjYYYcMS1M45xAqY"
+            "token": "s.g1ew6c5qfpHASxWJsR2YJKXP"
         },
         "consul": {
+            "dc": "dc1",
             "address": "http://127.0.0.1:6500"
         },
         "mounts": [
             "secret/"
         ],
+        "syncPath": "vsync/",
         "numWorkers": 5,
         "tick": "10s",
         "timeout": "10s"

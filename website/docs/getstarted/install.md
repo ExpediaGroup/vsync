@@ -33,15 +33,15 @@ Available Commands:
 
 Flags:
   -c, --config string                       load the config file along with path (default is $HOME/.vsync.json)
-      --destination.consul.address string   destination vault address
-      --destination.dc string               destination datacenter
+      --destination.consul.address string   destination consul address
+      --destination.consul.dc string               destination consul datacenter
       --destination.vault.address string    destination vault address
       --destination.vault.token string      destination vault token
   -h, --help                                help for vsync
       --log.level string                    logger level (info|debug)
       --log.type string                     logger type (console|json)
       --origin.consul.address string        origin consul address
-      --origin.dc string                    origin datacenter
+      --origin.consul.dc string             origin consul datacenter
       --origin.vault.address string         origin vault address
       --origin.vault.token string           origin vault token
       --version                             version information

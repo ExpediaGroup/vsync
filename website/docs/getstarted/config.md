@@ -21,6 +21,8 @@ sidebar_label: Config
 
 `syncPath` : consul kv path where vsync has to store its meta data (default: "vsync/")
 
+> Deprecated after v0.1.1, replaced by syncPath in origin and destination
+
 `dataPaths` : array of vault paths / mounts which needs to be synced
 
 > Deprecated after v0.0.1, replaced by mounts in origin and destination
@@ -36,6 +38,8 @@ sidebar_label: Config
 `origin` : top level key for all origin related config parameters
 
 `origin.dc` : origin consul datacenter. "--origin.dc" cli param
+
+> Deprecated after v0.1.1, replaced by dc in origin.consul.dc
 
 `origin.vault` : origin vault top level key
 
@@ -53,6 +57,8 @@ sidebar_label: Config
 
 `origin.consul.address` : origin consul address where we need to store vsync meta data ( sync info ). "--origin.consul.address" cli param
 
+`origin.consul.dc` : origin consul datacenter. "--origin.consul.dc" cli param
+
 `origin.numWorkers` : number of get insights worker (default: 1)
 
 `origin.tick` : interval for timer to start origin sync cycles. String format like 10m, 5s (default: "1m")
@@ -67,6 +73,8 @@ sidebar_label: Config
 
 `destination.dc` : destination consul datacenter
 
+> Deprecated after v0.1.1, replaced by dc in destination.consul.dc
+
 `destination.vault` : destination vault top level key
 
 `destination.vault.address` : destination vault address where we need to get metadata ( vault kv metadata ). "--destination.vault.address" cli param
@@ -80,6 +88,8 @@ sidebar_label: Config
 `destination.vault.approle.secret_id` : destination vault secret_id from an approle which has permissions to read, update, write in vault mounts. "--destination.vault.approle.secret_id" cli param (use token OR approle)
 
 `destination.mounts` : array of vault paths / mounts which needs to be synced. Each value needs to end with /. Token permissions to read, update, delete are checked for each cycle.
+
+`destination.consul.dc` : destination consul datacenter.  "--destination.consul.dc" cli param
 
 `destination.consul.address` : destination consul address where we need to store vsync meta data ( sync info ). "--destination.consul.address" cli param
 
@@ -103,7 +113,6 @@ Supported format: json, hcl, yaml through [viper](https://github.com/spf13/viper
 
 ```
 {
-    "syncPath": "vsync/",
     "log": {
         "level": "debug",
         "type": "console"
@@ -111,17 +120,18 @@ Supported format: json, hcl, yaml through [viper](https://github.com/spf13/viper
     "logLevel": "info",
     "numBuckets": 19,
     "origin": {
-        "dc": "dc1",
         "vault": {
             "address": "http://127.0.0.1:6200",
             "token": "s.MDLmK6gOVLL33bB5TkdnJPOB"
         },
         "consul": {
+            "dc": "dc1",
             "address": "http://127.0.0.1:6500"
         },
         "mounts": [
             "secret/"
         ],
+        "syncPath": "vsync/",
         "numWorkers": 5,
         "tick": "10s",
         "timeout": "10s"
@@ -133,37 +143,38 @@ Supported format: json, hcl, yaml through [viper](https://github.com/spf13/viper
 
 ```
 {
-    "syncPath": "vsync/",
     "log": {
         "level": "debug",
         "type": "console"
     },
     "numBuckets": 19,
     "origin": {
-        "dc": "dc1",
         "vault": {
             "address": "http://127.0.0.1:6200",
             "token": "s.8Te1siHQnIoJ4k6el4pioQhz"
         },
         "consul": {
+            "dc": "dc1",
             "address": "http://127.0.0.1:6500"
         },
         "mounts": [
             "secret/"
         ],
+        "syncPath": "vsync/",
         "numWorkers": 5,
         "tick": "10s",
         "timeout": "10s"
     },
     "destination": {
-        "dc": "dc2",
         "vault": {
             "address": "http://127.0.0.1:7200",
             "token": "s.5LvYTJQhwyh2CvrZtUpnHeLb"
         },
         "consul": {
+            "dc": "dc2",
             "address": "http://127.0.0.1:7500"
         },
+        "syncPath": "vsync/",
         "numWorkers": 10,
         "tick": "10s",
         "timeout": "10s"
@@ -175,37 +186,38 @@ Supported format: json, hcl, yaml through [viper](https://github.com/spf13/viper
 
 ```
 {
-    "syncPath": "vsync/",
     "log": {
         "level": "debug",
         "type": "console"
     },
     "numBuckets": 19,
     "origin": {
-        "dc": "dc1",
         "vault": {
             "address": "http://127.0.0.1:6200",
             "token": "s.8Te1siHQnIoJ4k6el4pioQhz"
         },
         "consul": {
+            "dc": "dc1",
             "address": "http://127.0.0.1:6500"
         },
         "mounts": [
             "runner/"
         ],
+        "syncPath": "vsync/",
         "numWorkers": 5,
         "tick": "10s",
         "timeout": "10s"
     },
     "destination": {
-        "dc": "dc2",
         "vault": {
             "address": "http://127.0.0.1:7200",
             "token": "s.5LvYTJQhwyh2CvrZtUpnHeLb"
         },
         "consul": {
+            "dc": "dc2",
             "address": "http://127.0.0.1:7500"
         },
+        "syncPath": "vsync/",
         "numWorkers": 10,
         "tick": "10s",
         "timeout": "10s",
@@ -226,37 +238,38 @@ We are transforming from one mount to another
 
 ```
 {
-    "syncPath": "vsync/",
     "log": {
         "level": "debug",
         "type": "console"
     },
     "numBuckets": 19,
     "origin": {
-        "dc": "dc1",
         "vault": {
             "address": "http://127.0.0.1:6200",
             "token": "s.MDLmK6gOVLL33bB5TkdnJPOB"
         },
         "consul": {
+            "dc": "dc1",
             "address": "http://127.0.0.1:6500"
         },
         "mounts": [
             "runner/"
         ],
+        "syncPath": "vsync/",
         "numWorkers": 5,
         "tick": "10s",
         "timeout": "10s"
     },
     "destination": {
-        "dc": "dc1",
         "vault": {
             "address": "http://127.0.0.1:6200",
             "token": "s.MDLmK6gOVLL33bB5TkdnJPOB"
         },
         "consul": {
+            "dc": "dc1",
             "address": "http://127.0.0.1:6500"
         },
+        "syncPath": "vsync/",
         "numWorkers": 10,
         "tick": "10s",
         "timeout": "10s",
