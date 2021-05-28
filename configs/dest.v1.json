@@ -1,6 +1,5 @@
 {
     "name": "dest_v1",
-    "syncPath": "vsync/",
     "log": {
         "level": "debug",
         "type": "console"
@@ -10,7 +9,7 @@
         "dc": "dc1",
         "vault": {
             "address": "http://127.0.0.1:6200",
-            "token": "s.8Te1siHQnIoJ4k6el4pioQhz"
+            "token": "s.g1ew6c5qfpHASxWJsR2YJKXP"
         },
         "consul": {
             "address": "http://127.0.0.1:6500"
@@ -18,23 +17,25 @@
         "mounts": [
             "secret/"
         ],
+        "syncPath": "vsync/",
         "numWorkers": 5,
         "tick": "10s",
         "timeout": "10s",
         "renewToken": false
     },
     "destination": {
-        "dc": "dc2",
         "vault": {
             "address": "http://127.0.0.1:7200",
-            "token": "s.5LvYTJQhwyh2CvrZtUpnHeLb"
+            "token": "s.09Pyj90P186pQVp60zC1CCN7"
         },
         "consul": {
-            "address": "http://127.0.0.1:7500"
+            "dc": "dc1",
+            "address": "http://127.0.0.1:6500"
         },
         "mounts": [
             "secret/"
         ],
+        "syncPath": "vsync/",
         "numWorkers": 10,
         "tick": "10s",
         "timeout": "10s"

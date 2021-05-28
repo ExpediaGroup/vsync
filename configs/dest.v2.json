@@ -1,40 +1,41 @@
 {
     "name": "dest_v2",
-    "syncPath": "vsync/",
     "log": {
         "level": "debug",
         "type": "console"
     },
     "numBuckets": 19,
     "origin": {
-        "dc": "dc1",
         "vault": {
             "address": "http://127.0.0.1:6200",
             "token": "s.M1R5N97REjYYYcMS1M45xAqY"
         },
         "consul": {
+            "dc": "dc1",
             "address": "http://127.0.0.1:6500"
         },
         "mounts": [
             "secret/"
         ],
+        "syncPath": "vsync/",
         "numWorkers": 5,
         "tick": "10s",
         "timeout": "10s",
         "renewToken": false
     },
     "destination": {
-        "dc": "dc2",
         "vault": {
             "address": "http://127.0.0.1:7200",
             "token": "s.Vux0ColMEJZpvvvfILZkoDpr"
         },
         "consul": {
+            "dc": "dc2",
             "address": "http://127.0.0.1:7500"
         },
         "mounts": [
             "secret/"
         ],
+        "syncPath": "vsync/",
         "numWorkers": 10,
         "tick": "10s",
         "timeout": "10s",

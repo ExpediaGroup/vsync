@@ -38,11 +38,13 @@ import (
 )
 
 func init() {
-	viper.SetDefault("syncPath", "vsync/")
-	viper.SetDefault("numBuckets", 1) // we need atleast one bucket to store info
+	viper.SetDefault("name", "destination") // name is required for mount checks and telemetry
+	viper.SetDefault("numBuckets", 1)       // we need atleast one bucket to store info
 	viper.SetDefault("destination.tick", "10s")
 	viper.SetDefault("destination.timeout", "5m")
+	viper.SetDefault("destination.syncPath", "vsync/")
 	viper.SetDefault("destination.numWorkers", 1) // we need atleast 1 worker or else the sync routine will be blocked
+	viper.SetDefault("origin.syncPath", "vsync/")
 	viper.SetDefault("origin.renewToken", true)
 
 	if err := viper.BindPFlags(destinationCmd.PersistentFlags()); err != nil {
@@ -79,18 +81,31 @@ var destinationCmd = &cobra.Command{
 
 		// initial configs
 		name := viper.GetString("name")
-		syncPath := viper.GetString("syncPath")
 		numBuckets := viper.GetInt("numBuckets")
 		tick := viper.GetDuration("destination.tick")
 		timeout := viper.GetDuration("destination.timeout")
 		numWorkers := viper.GetInt("destination.numWorkers")
+		originSyncPath := viper.GetString("origin.syncPath")
 		originMounts := viper.GetStringSlice("origin.mounts")
+		destinationSyncPath := viper.GetString("destination.syncPath")
 		destinationMounts := viper.GetStringSlice("destination.mounts")
 		hasher := sha256.New()
 
-		// name is required for mount checks and telemetry
-		if name != "" {
-			name = "destination"
+		// deprecated
+		syncPathDepr := viper.GetString("syncPath")
+		if syncPathDepr != "" {
+			log.Error().Str("mode", "destination").Msg("syncPath variable is deprecated, use origin.syncPath and destination.syncPath, they can be same value")
+			return apperr.New(fmt.Sprintf("parameter %q deprecated, please use %q and %q; they can be same value", "syncPath", "destination.syncPath", "origin.syncPath"), ErrInitialize, op, apperr.Fatal)
+		}
+		originDcDepr := viper.GetString("origin.dc")
+		if originDcDepr != "" {
+			log.Error().Str("mode", "origin").Str("origin.dc", originDcDepr).Msg("origin.dc variable is deprecated, please use origin.consul.dc")
+			return apperr.New(fmt.Sprintf("parameter %q deprecated, use %q", "origin.dc", "origin.consul.dc"), ErrInitialize, op, apperr.Fatal)
+		}
+		destinationDcDepr := viper.GetString("destination.dc")
+		if destinationDcDepr != "" {
+			log.Error().Str("mode", "destination").Str("destination.dc", destinationDcDepr).Msg("destination.dc variable is deprecated, please use destination.consul.dc")
+			return apperr.New(fmt.Sprintf("parameter %q deprecated, use %q", "destination.dc", "destination.consul.dc"), ErrInitialize, op, apperr.Fatal)
 		}
 
 		// telemetry client
@@ -123,18 +138,22 @@ var destinationCmd = &cobra.Command{
 		}
 
 		// perform inital checks on sync path, check kv and token permissions
-		if syncPath[len(syncPath)-1:] != "/" {
-			syncPath = syncPath + "/"
+		if originSyncPath[len(originSyncPath)-1:] != "/" {
+			originSyncPath = originSyncPath + "/"
 		}
-		originSyncPath := syncPath + "origin/"
-		destinationSyncPath := syncPath + "destination/"
+		if destinationSyncPath[len(destinationSyncPath)-1:] != "/" {
+			destinationSyncPath = destinationSyncPath + "/"
+		}
+		// adds type into sync path, useful in case we use same syncPath in same consul
+		originSyncPath = originSyncPath + "origin/"
+		destinationSyncPath = destinationSyncPath + "destination/"
 
 		err = destinationConsul.SyncPathChecks(destinationSyncPath, consul.StdCheck)
 		if err != nil {
 			log.Debug().Err(err).Msg("failures on sync path checks on destination")
 			return apperr.New(fmt.Sprintf("sync path checks failed for %q", destinationSyncPath), err, op, apperr.Fatal, ErrInitialize)
 		}
-		log.Info().Str("path", syncPath).Msg("sync path passed initial checks on destination")
+		log.Info().Str("path", destinationSyncPath).Msg("sync path passed initial checks on destination")
 
 		err = originConsul.SyncPathChecks(originSyncPath, consul.StdCheck)
 		if err != nil {
@@ -208,9 +227,9 @@ var destinationCmd = &cobra.Command{
 		go prepareWatch(ctx, originConsul, originSyncPath, triggerCh, errCh)
 		go prepareTicker(ctx, originConsul, originSyncPath, tick, triggerCh, errCh)
 		go destinationSync(ctx, name,
-			originConsul, originVault, originMounts,
-			destinationConsul, destinationVault, destinationMounts,
-			syncPath, pack,
+			originConsul, originSyncPath, originVault, originMounts,
+			destinationConsul, destinationSyncPath, destinationVault, destinationMounts,
+			pack,
 			hasher, numBuckets, timeout, numWorkers,
 			triggerCh, errCh)
 
@@ -330,15 +349,13 @@ func prepareTicker(ctx context.Context, originConsul *consul.Client, originSyncP
 
 // destinationSync compares sync entries then update actual and sync entries
 func destinationSync(ctx context.Context, name string,
-	originConsul *consul.Client, originVault *vault.Client, originMounts []string,
-	destinationConsul *consul.Client, destinationVault *vault.Client, destinationMounts []string,
-	syncPath string, pack transformer.Pack,
+	originConsul *consul.Client, originSyncPath string, originVault *vault.Client, originMounts []string,
+	destinationConsul *consul.Client, destinationSyncPath string, destinationVault *vault.Client, destinationMounts []string,
+	pack transformer.Pack,
 	hasher hash.Hash, numBuckets int, timeout time.Duration, numWorkers int,
 	triggerCh chan bool, errCh chan error) {
 
 	const op = apperr.Op("cmd.destinationSync")
-	originSyncPath := syncPath + "origin/"
-	destinationSyncPath := syncPath + "destination/"
 
 	for {
 		select {
