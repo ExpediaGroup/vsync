@@ -97,9 +97,7 @@ func (v *Client) CheckTokenPermissions(p string, checks int, name string) error 
 	p = p + "/vsyncChecks/" + name
 
 	data := map[string]interface{}{
-		"data": map[string]string{
-			"key": unique.String(),
-		},
+		"key": unique.String(),
 	}
 
 	path := p
