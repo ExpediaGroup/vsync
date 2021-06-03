@@ -107,7 +107,8 @@ func (v *Client) CheckTokenPermissions(p string, checks int, name string) error 
 	parentPath := metaPath[:strings.LastIndex(metaPath, "/")]
 
 	// create
-	if checks&(WriteCheck) != 0 {
+	check := WriteCheck
+	if checks&check == check {
 		_, err = v.Logical().Write(path, data)
 		if err != nil {
 			log.Debug().Err(err).Str("path", path).Msg("cannot create data in path")
@@ -117,7 +118,8 @@ func (v *Client) CheckTokenPermissions(p string, checks int, name string) error 
 	}
 
 	// list
-	if checks&(WriteCheck|ListCheck) != 0 {
+	check = WriteCheck | ListCheck
+	if checks&check == check {
 		paths, _, err := v.DeepListPaths(parentPath)
 		if err != nil {
 			log.Debug().Err(err).Str("path", path).Msg("cannot list paths in path")
@@ -139,7 +141,8 @@ func (v *Client) CheckTokenPermissions(p string, checks int, name string) error 
 	}
 
 	// read
-	if checks&(WriteCheck|ListCheck|ReadCheck) != 0 {
+	check = WriteCheck | ListCheck | ReadCheck
+	if checks&check == check {
 		secret, err := v.Logical().Read(path)
 		if err != nil {
 			log.Debug().Err(err).Str("path", path).Msg("cannot read data from path")
@@ -162,7 +165,8 @@ func (v *Client) CheckTokenPermissions(p string, checks int, name string) error 
 	}
 
 	// delete
-	if checks&(WriteCheck|ListCheck|ReadCheck|DeleteCheck) != 0 {
+	check = WriteCheck | ListCheck | ReadCheck | DeleteCheck
+	if checks&check == check {
 		_, err = v.Logical().Delete(path)
 		if err != nil {
 			log.Debug().Err(err).Str("path", path).Msg("cannot delete data from path")
