@@ -51,7 +51,7 @@ sidebar_label: Config
 
 `origin.vault.approle.role_id` : origin vault role_id from an approle which has permissions to read, update, write in vault mounts. "--origin.vault.approle.role_id" cli param (use token OR approle)
 
-`origin.vault.approle.secret_id` : origin vault secret_id from an approle which has permissions to read, update, write in vault mounts. "--origin.vault.approle.secret_id" cli param (use token OR approle)
+`origin.vault.approle.secret_id` : origin vault secret_id from an approle which has permissions to read, update, write in vault mounts. "--origin.vault.approle.secret_id" cli param (use token OR approle). ENV variable VSYNC_ORIGIN_VAULT_APPROLE_SECRET_ID
 
 `origin.mounts` : array of vault paths / mounts which needs to be synced. Each value needs to end with /. Token permissions to read, update, delete are checked for each cycle.
 
@@ -85,7 +85,7 @@ sidebar_label: Config
 
 `destination.vault.approle.role_id` : destination vault role_id from an approle which has permissions to read, update, write in vault mounts. "--destination.vault.approle.role_id" cli param (use token OR approle)
 
-`destination.vault.approle.secret_id` : destination vault secret_id from an approle which has permissions to read, update, write in vault mounts. "--destination.vault.approle.secret_id" cli param (use token OR approle)
+`destination.vault.approle.secret_id` : destination vault secret_id from an approle which has permissions to read, update, write in vault mounts. "--destination.vault.approle.secret_id" cli param (use token OR approle). ENV variable VSYNC_DESTINATION_VAULT_APPROLE_SECRET_ID
 
 `destination.mounts` : array of vault paths / mounts which needs to be synced. Each value needs to end with /. Token permissions to read, update, delete are checked for each cycle.
 
