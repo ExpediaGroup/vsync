@@ -23,6 +23,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// TODO: this needs to be modified, like vault checks. see pull request #28 https://github.com/ExpediaGroup/vsync/pull/28
 const (
 	ReadCheck = 1 << iota
 	WriteCheck

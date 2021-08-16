@@ -19,38 +19,58 @@ import (
 	"strings"
 
 	"github.com/ExpediaGroup/vsync/apperr"
-	"github.com/gofrs/uuid"
 	"github.com/hashicorp/vault/api"
 	"github.com/rs/zerolog/log"
 )
 
 const (
-	ReadCheck = 1 << iota
-	WriteCheck
-	ListCheck
-	DeleteCheck
-	StdCheck = ReadCheck | WriteCheck | ListCheck | DeleteCheck
+	CheckCreate = 1 << iota
+	CheckDelete
+	CheckList
+	CheckRead
+	CheckUpdate
+
+	CheckAll = CheckCreate | CheckDelete | CheckList | CheckRead | CheckUpdate
+	CheckOrigin = CheckRead | CheckList
+	CheckDestination = CheckCreate | CheckDelete | CheckList | CheckRead | CheckUpdate
 )
 
-func (v *Client) MountChecks(mount string, checks int, name string) error {
+func (v *Client) MountChecks(mPath string, checks int, name string) error {
 	const op = apperr.Op("vault.MountChecks")
 	if checks == 0 {
-		checks = StdCheck
+		checks = CheckAll
 	}
 
-	err := v.IsSecretKvV2(mount)
+	m, err := v.GetMount(mPath)
 	if err != nil {
-		log.Debug().Err(err).Str("mount", mount).Msg("mount is not kv or not kv v2, check token permission")
-		return apperr.New(fmt.Sprintf("data mount %q is not kv / kv_v2", mount), err, op, apperr.Fatal, ErrInvalidToken)
+		return apperr.New(fmt.Sprintf("could not get mount in path %q, also check vault token permission for read+list on sys/mounts", mPath), err, op, apperr.Fatal, ErrInitialize)
 	}
 
-	p := fmt.Sprintf("%sdata", mount)
+	// Currently we support only kv v2 for replication
+	if (m.Type == "kv" || m.Type == "generic") && m.Options["version"] == "2" {
+		log.Debug().Interface("mount", m).Str("path", mPath).Msg("mount is of type kv v2")
+	} else {
+		log.Debug().Interface("mount", m).Str("path", mPath).Msg("mount is not of type kv v2")
+		return apperr.New(fmt.Sprintf("mount %q not a kv_v2", mPath), err, op, apperr.Fatal, ErrInitialize)
+	}
 
-	err = v.CheckTokenPermissions(p, checks, name)
+	// data path token permission checks
+	p := fmt.Sprintf("%sdata/", mPath)
+	err = v.CheckTokenPermissions(p, checks)
 	if err != nil {
-		return apperr.New(fmt.Sprintf("token missing permissions on data path %q", p), err, op, apperr.Fatal, ErrInvalidToken)
+		return apperr.New(fmt.Sprintf("vault token missing permissions on data path %q", p), err, op, apperr.Fatal, ErrInvalidToken)
 	}
+	log.Info().Str("path", p).Str("checks", fmt.Sprintf("%b", checks)).Msg("vault token has required capabilities on path")
 
+	// meta data path token permission checks
+	metaPath := strings.Replace(p, "/data/", "/metadata/", 1)
+	err = v.CheckTokenPermissions(metaPath, checks)
+	if err != nil {
+		return apperr.New(fmt.Sprintf("vault token missing permissions on meta path %q", metaPath), err, op, apperr.Fatal, ErrInvalidToken)
+	}
+	log.Info().Str("path", metaPath).Str("checks", fmt.Sprintf("%b", checks)).Msg("vault token has required capabilities on path")
+
+	// parentPath := metaPath[:strings.LastIndex(metaPath, "/")]
 	return nil
 }
 
@@ -72,115 +92,58 @@ func (v *Client) GetMount(m string) (*api.MountOutput, error) {
 	return mount, nil
 }
 
-func (v *Client) IsSecretKvV2(p string) error {
-	const op = apperr.Op("vault.IsSecretKvV2")
-	mount, err := v.GetMount(p)
-	if err != nil {
-		return apperr.New(fmt.Sprintf("could not get mount in path %q", p), err, op, ErrInitialize)
-	}
-
-	if (mount.Type == "kv" || mount.Type == "generic") && mount.Options["version"] == "2" {
-		return nil
-	}
-
-	log.Debug().Interface("mount", mount).Str("path", p).Msg("mount is not of type kv v2")
-	return apperr.New(fmt.Sprintf("mount %q not a kv_v2", p), ErrInitialize, op)
-}
-
-// Check if we can create, list, read, delete in data paths
-// assumes kv v2
-func (v *Client) CheckTokenPermissions(p string, checks int, name string) error {
+func (v *Client) CheckTokenPermissions(p string, checks int) error {
 	const op = apperr.Op("vault.CheckTokenPermissions")
 	var err error
 
-	unique, _ := uuid.NewV4()
-	p = p + "/vsyncChecks/" + name
-
-	data := map[string]interface{}{
-		"data": map[string]string{
-			"key": unique.String(),
-		},
-	}
-
+	// vault token self capabilities on a specific path
 	path := p
-	metaPath := strings.Replace(p, "/data/", "/metadata/", 1)
-	parentPath := metaPath[:strings.LastIndex(metaPath, "/")]
-
-	// create
-	if checks&(WriteCheck) != 0 {
-		_, err = v.Logical().Write(path, data)
-		if err != nil {
-			log.Debug().Err(err).Str("path", path).Msg("cannot create data in path")
-			return apperr.New(fmt.Sprintf("cannot create dummy secret in data path %q", path), err, op, ErrInvalidToken)
-		}
-		log.Debug().Str("path", path).Msg("data path is writeable")
+	caps, err := v.Sys().CapabilitiesSelf(path)
+	if err != nil {
+		log.Debug().Err(err).Str("path", path).Msg("unable to get token capabilities on path")
+		return apperr.New(fmt.Sprintf("unable to get token capabilities on path %q", path), err, op, ErrInvalidToken)
 	}
-
-	// list
-	if checks&(WriteCheck|ListCheck) != 0 {
-		paths, _, err := v.DeepListPaths(parentPath)
-		if err != nil {
-			log.Debug().Err(err).Str("path", path).Msg("cannot list paths in path")
-			return apperr.New(fmt.Sprintf("cannot list paths in data path %q", parentPath), err, op, ErrInvalidToken)
-		}
-
-		found := false
-		for _, path := range paths {
-			if path == name {
-				found = true
-			}
-		}
-		if found {
-			log.Debug().Str("path", parentPath).Msg("data path is listable")
-		} else {
-			log.Debug().Str("path", parentPath).Msg("cannot list the secrets")
-			return apperr.New(fmt.Sprintf("cannot find dummy secret in data path %q", path), ErrInvalidToken, op)
+	log.Debug().Str("path", path).Int("checks", checks).Strs("capabilities", caps).Msg("token capabilities on path")
+	
+	if checks & CheckCreate == CheckCreate {
+		if isStringPresent(caps, "create") == false {
+			log.Debug().Err(err).Str("path", path).Msg("token does not have create permission on path")
+			return apperr.New(fmt.Sprintf("token does not have create permission on path %q", path), err, op, ErrInvalidToken)
 		}
 	}
-
-	// read
-	if checks&(WriteCheck|ListCheck|ReadCheck) != 0 {
-		secret, err := v.Logical().Read(path)
-		if err != nil {
-			log.Debug().Err(err).Str("path", path).Msg("cannot read data from path")
-			return apperr.New(fmt.Sprintf("cannot read secrets in data path %q", path), err, op, ErrInvalidToken)
+	if checks & CheckDelete == CheckDelete {
+		if isStringPresent(caps, "delete") == false {
+			log.Debug().Err(err).Str("path", path).Msg("token does not have delete permission on path")
+			return apperr.New(fmt.Sprintf("token does not have delete permission on path %q", path), err, op, ErrInvalidToken)
 		}
-		if secret.Data["data"] == nil {
-			log.Debug().Str("path", path).Msg("no secrets found in path")
-			return apperr.New(fmt.Sprintf("cannot read dummy secret in data path %q", path), ErrInvalidToken, op)
+	}
+	if checks & CheckList == CheckList {
+		if isStringPresent(caps, "list") == false {
+			log.Debug().Err(err).Str("path", path).Msg("token does not have list permission on path")
+			return apperr.New(fmt.Sprintf("token does not have list permission on path %q", path), err, op, ErrInvalidToken)
 		}
-		secretData, ok := secret.Data["data"].(map[string]interface{})
-		if !ok {
-			return apperr.New(fmt.Sprintf("cannot type cast from %q to %q in data path %q", "secret data", "map[string]interface{}", path), ErrInitialize, op, apperr.Fatal)
+	}
+	if checks & CheckRead == CheckRead {
+		if isStringPresent(caps, "read") == false {
+			log.Debug().Err(err).Str("path", path).Msg("token does not have read permission on path")
+			return apperr.New(fmt.Sprintf("token does not have read permission on path %q", path), err, op, ErrInvalidToken)
 		}
-		if secretData != nil && secretData["key"] != nil && secretData["key"].(string) == unique.String() {
-			log.Debug().Str("path", path).Msg("data path is readable")
-		} else {
-			log.Debug().Str("path", path).Msg("cannot read secrets")
-			return apperr.New(fmt.Sprintf("cannot read dummy secret in data path %q", path), ErrInvalidToken, op)
+	}
+	if checks & CheckUpdate == CheckUpdate {
+		if isStringPresent(caps, "update") == false {
+			log.Debug().Err(err).Str("path", path).Msg("token does not have update permission on path")
+			return apperr.New(fmt.Sprintf("token does not have update permission on path %q", path), err, op, ErrInvalidToken)
 		}
 	}
 
-	// delete
-	if checks&(WriteCheck|ListCheck|ReadCheck|DeleteCheck) != 0 {
-		_, err = v.Logical().Delete(path)
-		if err != nil {
-			log.Debug().Err(err).Str("path", path).Msg("cannot delete data from path")
-			return apperr.New(fmt.Sprintf("cannot delete dummy secret in data path %q", path), err, op, ErrInvalidToken)
-		}
-
-		// read again
-		secret, err := v.Logical().Read(path)
-		if err != nil {
-			log.Debug().Err(err).Str("path", path).Msg("cannot delete data from path")
-			return apperr.New(fmt.Sprintf("cannot read secrets in data path %q", path), err, op, ErrInvalidToken)
-		}
-		if secret.Data["data"] != nil {
-			log.Debug().Str("path", path).Msg("cannot delete secrets from path")
-			return apperr.New(fmt.Sprintf("cannot successfully delete dummy secret in data path %q", path), ErrInvalidToken, op)
-		}
-	}
-
-	log.Debug().Str("path", path).Msg("data path is deletable")
 	return nil
+}
+
+func isStringPresent(slice []string, s string) bool {
+	for _,v := range slice {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }

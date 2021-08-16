@@ -7,16 +7,15 @@
   "numBuckets": 19,
   "origin": {
     "vault": {
-      "address": "http://127.0.0.1:8200",
+      "address": "http://127.0.0.1:6200",
       "approle": {
-        "path": "approle",
-        "role_id": "1a871568-7728-7ec2-3848-6e4250659198",
-        "secret_id": "bca693d3-1a7a-0fd1-10f9-9c61e10d207c"
+        "role_id": "36cd0b35-a87b-24a9-06f6-e19ba6c75588",
+        "secret_id": "5e48f6de-5a07-e8a2-51b5-2dd5b5097dc7"
       }
     },
     "consul": {
       "dc": "dc1",
-      "address": "http://127.0.0.1:8500"
+      "address": "http://127.0.0.1:6500"
     },
     "mounts": ["secret/"],
     "syncPath": "vsync/",
@@ -28,7 +27,10 @@
   "destination": {
     "vault": {
       "address": "http://127.0.0.1:7200",
-      "token": "s.5LvYTJQhwyh2CvrZtUpnHeLb"
+      "approle": {
+        "role_id": "8c69f0d3-ef13-cc48-347f-2fdb3da80a43",
+        "secret_id": "d131f5a7-c0f5-870c-c224-3584e23c9ee6"
+      }
     },
     "consul": {
       "dc": "dc2",
