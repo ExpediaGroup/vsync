@@ -196,7 +196,7 @@ var destinationCmd = &cobra.Command{
 				log.Debug().Err(err).Msg("failures on mount checks on origin, missing a / at last for each mount")
 				return apperr.New(fmt.Sprintf("failures on mount checks on origin, missing a / at last for each mount"), err, op, apperr.Fatal, ErrInitialize)
 			}
-			err = originVault.MountChecks(mount, vault.StdCheck, name)
+			err = originVault.MountChecks(mount, vault.CheckOrigin, name)
 			if err != nil {
 				log.Debug().Err(err).Msg("failures on data paths checks on origin")
 				return apperr.New(fmt.Sprintf("failures on data paths checks on origin"), err, op, apperr.Fatal, ErrInitialize)
@@ -213,7 +213,7 @@ var destinationCmd = &cobra.Command{
 				log.Debug().Err(err).Msg("failures on mount checks on destination, missing a / at last for each mount")
 				return apperr.New(fmt.Sprintf("failures on mount checks on destination, missing a / at last for each mount"), err, op, apperr.Fatal, ErrInitialize)
 			}
-			err = destinationVault.MountChecks(mount, vault.StdCheck, name)
+			err = destinationVault.MountChecks(mount, vault.CheckDestination, name)
 			if err != nil {
 				log.Debug().Err(err).Msg("failures on mount checks on destination")
 				return apperr.New(fmt.Sprintf("failures on mount checks on destination"), err, op, apperr.Fatal, ErrInitialize)
@@ -379,7 +379,7 @@ func destinationSync(ctx context.Context, name string,
 
 			// check origin token permission before starting each cycle
 			for _, oMount := range originMounts {
-				err := originVault.MountChecks(oMount, vault.StdCheck, name)
+				err := originVault.MountChecks(oMount, vault.CheckOrigin, name)
 				if err != nil {
 					log.Debug().Err(err).Msg("failures on data paths checks on origin")
 					errCh <- apperr.New(fmt.Sprintf("failures on data paths checks on origin"), err, op, apperr.Fatal, ErrInitialize)
@@ -394,7 +394,7 @@ func destinationSync(ctx context.Context, name string,
 
 			// check destination token permission before starting each cycle
 			for _, dMount := range destinationMounts {
-				err := destinationVault.MountChecks(dMount, vault.StdCheck, name)
+				err := destinationVault.MountChecks(dMount, vault.CheckDestination, name)
 				if err != nil {
 					log.Debug().Err(err).Msg("failures on data paths checks on destination")
 					errCh <- apperr.New(fmt.Sprintf("failures on data paths checks on destination"), err, op, apperr.Fatal, ErrInitialize)

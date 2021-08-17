@@ -13,10 +13,10 @@ function origin_token() {
     echo '
 # TODO: remove create update delete when vsync code is not checking for all capabilities of a token
 path "secret/*" {
-  capabilities = ["create","update","read","list","delete"]
+  capabilities = ["read","list"]
 }
 path "multipaas/*" {
-  capabilities = ["create","update","read","list","delete"]
+  capabilities = ["read","list"]
 }
 path "sys/mounts" {
     capabilities = ["read","list"]
@@ -45,6 +45,7 @@ path "sys/mounts" {
     echo "Copy the token and place in config file"
 }
 
+
 # destroy
 set +e
 docker stop originC && docker rm originC
@@ -70,6 +71,12 @@ vault login ${origin_ROOT_TOKEN} > /dev/null
 vault audit enable file file_path=/vault/logs/vault_audit.log
 vault secrets enable -path=multipaas --version 2 kv
 vault secrets enable -path=secret --version 2 kv
+vault auth enable approle
+vault write auth/approle/role/origin token_policies=vsync_origin
+echo ======= Origin Approle Creds ========
+echo $(vault read auth/approle/role/origin/role-id)
+echo $(vault write -f auth/approle/role/origin/secret-id)
+echo =====================================
 origin_token
 
 # destination
@@ -83,6 +90,12 @@ vault login ${destination_ROOT_TOKEN} > /dev/null
 vault audit enable file file_path=/vault/logs/vault_audit.log
 vault secrets enable -path=multipaas --version 2 kv
 vault secrets enable -path=secret --version 2 kv
+vault auth enable approle
+vault write auth/approle/role/destination token_policies=vsync_destination
+echo ======= Destination Approle Creds ========
+echo $(vault read auth/approle/role/destination/role-id)
+echo $(vault write -f auth/approle/role/destination/secret-id)
+echo =====================================
 destination_token
 
 # populate data
