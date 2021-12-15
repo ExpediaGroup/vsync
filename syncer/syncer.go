@@ -39,6 +39,8 @@ var (
 	ErrInitialize     = fmt.Errorf("Nope, not gonna work! Sync info not initialized")
 )
 
+var SyncDeletes = false
+
 type Task struct {
 	Path    string
 	Op      string

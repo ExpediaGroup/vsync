@@ -86,6 +86,11 @@ func FetchAndSave(ctx context.Context,
 					errCh <- apperr.New(fmt.Sprintf("worker %q performed %q operation, cannot transform path %q", workerId, task.Op, task.Path), ErrTransform, op)
 				}
 
+				if SyncDeletes == false {
+					log.Info().Str("path", newPath).Msg("sync deletes is false, so not deleting this path")
+					continue
+				}
+
 				_, err := destinationVault.Logical().Delete(newPath)
 				if err != nil {
 					log.Debug().Err(err).Str("path", task.Path).Str("operation", task.Op).Int("workerId", workerId).Msg("error while saving a path to destination vault")

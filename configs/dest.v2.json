@@ -4,11 +4,12 @@
         "level": "debug",
         "type": "console"
     },
+    "syncDeletes": false,
     "numBuckets": 19,
     "origin": {
         "vault": {
             "address": "http://127.0.0.1:6200",
-            "token": "s.M1R5N97REjYYYcMS1M45xAqY"
+            "token": "s.TeKMyMjtHYeaRrLOtDLIGecK"
         },
         "consul": {
             "dc": "dc1",
@@ -26,7 +27,7 @@
     "destination": {
         "vault": {
             "address": "http://127.0.0.1:7200",
-            "token": "s.Vux0ColMEJZpvvvfILZkoDpr"
+            "token": "s.Iv4r0TkuQJOkCLxJn3qD0rQH"
         },
         "consul": {
             "dc": "dc2",
