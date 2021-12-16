@@ -187,13 +187,13 @@ var destinationCmd = &cobra.Command{
 		}
 
 		destinationChecks := vault.CheckDestination
-		// sync deletes too?
+		// sync or ignore deletes?
 		// some times origin submits an empty sync data {} esp when origin vault is not responding as expected
 		// which makes destination think origin has deleted all secrets and then
 		// destination soft deletes them too. Scary
-		if viper.GetBool("syncDeletes") {
-			log.Info().Msg("sync deletes is true, so we can soft delete ( delete latest version ) in destination vault")
-			syncer.SyncDeletes = true
+		if viper.GetBool("ignoreDeletes") {
+			log.Info().Msg("ignore deletes is true, so we cannot soft delete ( delete latest version ) in destination vault")
+			syncer.IgnoreDeletes = true
 			destinationChecks = vault.CheckDestinationWithoutDelete
 		}
 
@@ -404,7 +404,7 @@ func destinationSync(ctx context.Context, name string,
 			}
 
 			destinationChecks := vault.CheckDestination
-			if syncer.SyncDeletes == true {
+			if syncer.IgnoreDeletes {
 				destinationChecks = vault.CheckDestinationWithoutDelete
 			}
 

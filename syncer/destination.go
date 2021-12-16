@@ -86,8 +86,8 @@ func FetchAndSave(ctx context.Context,
 					errCh <- apperr.New(fmt.Sprintf("worker %q performed %q operation, cannot transform path %q", workerId, task.Op, task.Path), ErrTransform, op)
 				}
 
-				if SyncDeletes == false {
-					log.Info().Str("path", newPath).Msg("sync deletes is false, so not deleting this path")
+				if IgnoreDeletes {
+					log.Info().Str("path", newPath).Msg("ignore deletes is true, so not deleting this path. Not saving this in destination sync info too")
 					continue
 				}
 

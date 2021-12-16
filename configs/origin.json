@@ -8,6 +8,7 @@
     "origin": {
         "vault": {
             "address": "http://127.0.0.1:6200",
+            "token": "s.gtxa88U2wgdwWsZ7osxnjztO",
             "approle": {
                 "role_id": "36cd0b35-a87b-24a9-06f6-e19ba6c75588",
                 "secret_id": "5e48f6de-5a07-e8a2-51b5-2dd5b5097dc7"
