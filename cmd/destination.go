@@ -186,6 +186,17 @@ var destinationCmd = &cobra.Command{
 			log.Info().Str("path", destinationSyncPath).Msg("path is initialized")
 		}
 
+		destinationChecks := vault.CheckDestination
+		// sync or ignore deletes?
+		// some times origin submits an empty sync data {} esp when origin vault is not responding as expected
+		// which makes destination think origin has deleted all secrets and then
+		// destination soft deletes them too. Scary
+		if viper.GetBool("ignoreDeletes") {
+			log.Info().Msg("ignore deletes is true, so we cannot soft delete ( delete latest version ) in destination vault")
+			syncer.IgnoreDeletes = true
+			destinationChecks = vault.CheckDestinationWithoutDelete
+		}
+
 		// perform intial checks on mounts, check kv v2 and token permissions
 		// check origin token permissions
 		if len(originMounts) == 0 {
@@ -213,7 +224,7 @@ var destinationCmd = &cobra.Command{
 				log.Debug().Err(err).Msg("failures on mount checks on destination, missing a / at last for each mount")
 				return apperr.New(fmt.Sprintf("failures on mount checks on destination, missing a / at last for each mount"), err, op, apperr.Fatal, ErrInitialize)
 			}
-			err = destinationVault.MountChecks(mount, vault.CheckDestination, name)
+			err = destinationVault.MountChecks(mount, destinationChecks, name)
 			if err != nil {
 				log.Debug().Err(err).Msg("failures on mount checks on destination")
 				return apperr.New(fmt.Sprintf("failures on mount checks on destination"), err, op, apperr.Fatal, ErrInitialize)
@@ -392,9 +403,14 @@ func destinationSync(ctx context.Context, name string,
 				}
 			}
 
+			destinationChecks := vault.CheckDestination
+			if syncer.IgnoreDeletes {
+				destinationChecks = vault.CheckDestinationWithoutDelete
+			}
+
 			// check destination token permission before starting each cycle
 			for _, dMount := range destinationMounts {
-				err := destinationVault.MountChecks(dMount, vault.CheckDestination, name)
+				err := destinationVault.MountChecks(dMount, destinationChecks, name)
 				if err != nil {
 					log.Debug().Err(err).Msg("failures on data paths checks on destination")
 					errCh <- apperr.New(fmt.Sprintf("failures on data paths checks on destination"), err, op, apperr.Fatal, ErrInitialize)

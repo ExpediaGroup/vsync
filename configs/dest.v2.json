@@ -8,7 +8,7 @@
     "origin": {
         "vault": {
             "address": "http://127.0.0.1:6200",
-            "token": "s.M1R5N97REjYYYcMS1M45xAqY"
+            "token": "s.gtxa88U2wgdwWsZ7osxnjztO"
         },
         "consul": {
             "dc": "dc1",
@@ -26,7 +26,7 @@
     "destination": {
         "vault": {
             "address": "http://127.0.0.1:7200",
-            "token": "s.Vux0ColMEJZpvvvfILZkoDpr"
+            "token": "s.n4s8CjzwsHA5FA65yEXTbdZK"
         },
         "consul": {
             "dc": "dc2",

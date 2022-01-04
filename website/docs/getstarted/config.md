@@ -33,6 +33,9 @@ sidebar_label: Config
 
 `numBuckets` : sync info in consul kv will have N number of buckets and 1 index, each bucket is a map of path:insight. You will need to increase it as you hit per consul kv size limit. It must be same for origin and destinations. (default: 1)
 
+`ignoreDeletes` : flag for vsync destination to ignore syncing deletes from origin side. (default: false). 
+##### Does not save deletes in destination sync info too so it has to compute the differences every time but useful for seeing changes between origin and destination at any point in time.
+
 ### Origin
 
 `origin` : top level key for all origin related config parameters

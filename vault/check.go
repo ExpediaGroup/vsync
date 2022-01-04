@@ -30,9 +30,10 @@ const (
 	CheckRead
 	CheckUpdate
 
-	CheckAll = CheckCreate | CheckDelete | CheckList | CheckRead | CheckUpdate
-	CheckOrigin = CheckRead | CheckList
-	CheckDestination = CheckCreate | CheckDelete | CheckList | CheckRead | CheckUpdate
+	CheckAll                      = CheckCreate | CheckDelete | CheckList | CheckRead | CheckUpdate
+	CheckOrigin                   = CheckRead | CheckList
+	CheckDestination              = CheckCreate | CheckDelete | CheckList | CheckRead | CheckUpdate
+	CheckDestinationWithoutDelete = CheckCreate | CheckList | CheckRead | CheckUpdate
 )
 
 func (v *Client) MountChecks(mPath string, checks int, name string) error {
@@ -104,32 +105,32 @@ func (v *Client) CheckTokenPermissions(p string, checks int) error {
 		return apperr.New(fmt.Sprintf("unable to get token capabilities on path %q", path), err, op, ErrInvalidToken)
 	}
 	log.Debug().Str("path", path).Int("checks", checks).Strs("capabilities", caps).Msg("token capabilities on path")
-	
-	if checks & CheckCreate == CheckCreate {
+
+	if checks&CheckCreate == CheckCreate {
 		if isStringPresent(caps, "create") == false {
 			log.Debug().Err(err).Str("path", path).Msg("token does not have create permission on path")
 			return apperr.New(fmt.Sprintf("token does not have create permission on path %q", path), err, op, ErrInvalidToken)
 		}
 	}
-	if checks & CheckDelete == CheckDelete {
+	if checks&CheckDelete == CheckDelete {
 		if isStringPresent(caps, "delete") == false {
 			log.Debug().Err(err).Str("path", path).Msg("token does not have delete permission on path")
 			return apperr.New(fmt.Sprintf("token does not have delete permission on path %q", path), err, op, ErrInvalidToken)
 		}
 	}
-	if checks & CheckList == CheckList {
+	if checks&CheckList == CheckList {
 		if isStringPresent(caps, "list") == false {
 			log.Debug().Err(err).Str("path", path).Msg("token does not have list permission on path")
 			return apperr.New(fmt.Sprintf("token does not have list permission on path %q", path), err, op, ErrInvalidToken)
 		}
 	}
-	if checks & CheckRead == CheckRead {
+	if checks&CheckRead == CheckRead {
 		if isStringPresent(caps, "read") == false {
 			log.Debug().Err(err).Str("path", path).Msg("token does not have read permission on path")
 			return apperr.New(fmt.Sprintf("token does not have read permission on path %q", path), err, op, ErrInvalidToken)
 		}
 	}
-	if checks & CheckUpdate == CheckUpdate {
+	if checks&CheckUpdate == CheckUpdate {
 		if isStringPresent(caps, "update") == false {
 			log.Debug().Err(err).Str("path", path).Msg("token does not have update permission on path")
 			return apperr.New(fmt.Sprintf("token does not have update permission on path %q", path), err, op, ErrInvalidToken)
@@ -140,7 +141,7 @@ func (v *Client) CheckTokenPermissions(p string, checks int) error {
 }
 
 func isStringPresent(slice []string, s string) bool {
-	for _,v := range slice {
+	for _, v := range slice {
 		if v == s {
 			return true
 		}
